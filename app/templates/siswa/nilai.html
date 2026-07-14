@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Nilai - {{ siswa.nama_lengkap }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">
+        <i class="fas fa-graduation-cap me-2"></i>Nilai Pelajaran: {{ siswa.nama_lengkap }}
+    </h4>
+    <a href="{{ url_for('routes.siswa_detail', id=siswa.id) }}" class="btn btn-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i>Kembali
+    </a>
+</div>
+
+<!-- Student Info Card -->
+<div class="row g-3 mb-3">
+    <div class="col-md-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center gap-3">
+                {% if siswa.foto_profil %}
+                    <img src="{{ url_for('static', filename='uploads/' + siswa.foto_profil) }}" class="rounded-circle" width="60" height="60" style="object-fit:cover;">
+                {% else %}
+                    <div class="display-4">🎓</div>
+                {% endif %}
+                <div>
+                    <h5 class="mb-0">{{ siswa.nama_lengkap }}</h5>
+                    <small class="text-muted">{{ siswa.kelas.nama_kelas if siswa.kelas else '-' }} | NISN: {{ siswa.nisn }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <form method="GET" class="row g-2 align-items-end">
+                    <div class="col-6">
+                        <label class="form-label small fw-bold">Tahun Ajaran</label>
+                        <select name="ta_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                            {% for ta in ta_list %}
+                            <option value="{{ ta.id }}" {{ 'selected' if selected_ta == ta.id }}>{{ ta.nama }}</option>
+                            {% endfor %}
+                            {% if not ta_list %}<option value="">-</option>{% endif %}
+                        </select>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small fw-bold">Semester</label>
+                        <select name="semester" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <option value="1" {{ 'selected' if semester == 1 }}>1</option>
+                            <option value="2" {{ 'selected' if semester == 2 }}>2</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if nilai_by_mp %}
+<!-- Grades Table -->
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-primary">
+                <tr>
+                    <th>Mata Pelajaran</th>
+                    <th class="text-center">UH1</th>
+                    <th class="text-center">UH2</th>
+                    <th class="text-center">UH3</th>
+                    <th class="text-center">UH4</th>
+                    <th class="text-center">T1</th>
+                    <th class="text-center">T2</th>
+                    <th class="text-center">T3</th>
+                    <th class="text-center">UTS</th>
+                    <th class="text-center">UAS</th>
+                    <th class="text-center">Rata-rata</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for mp_id, item in nilai_by_mp.items() %}
+                {% set n = item.nilai %}
+                <tr>
+                    <td>
+                        <strong>{{ item.mata_pelajaran.nama }}</strong>
+                        <br><small class="text-muted">{{ item.mata_pelajaran.kode }}</small>
+                    </td>
+                    <td class="text-center">{{ n.uh_1 if n.uh_1 is not none else '-' }}</td>
+                    <td class="text-center">{{ n.uh_2 if n.uh_2 is not none else '-' }}</td>
+                    <td class="text-center">{{ n.uh_3 if n.uh_3 is not none else '-' }}</td>
+                    <td class="text-center">{{ n.uh_4 if n.uh_4 is not none else '-' }}</td>
+                    <td class="text-center">{{ n.tugas_1 if n.tugas_1 is not none else '-' }}</td>
+                    <td class="text-center">{{ n.tugas_2 if n.tugas_2 is not none else '-' }}</td>
+                    <td class="text-center">{{ n.tugas_3 if n.tugas_3 is not none else '-' }}</td>
+                    <td class="text-center">{{ n.uts if n.uts is not none else '-' }}</td>
+                    <td class="text-center">{{ n.uas if n.uas is not none else '-' }}</td>
+                    <td class="text-center fw-bold">
+                        {% if n.rata_rata is not none %}
+                            <span class="{% if n.rata_rata >= 80 %}text-success{% elif n.rata_rata >= 60 %}text-warning{% else %}text-danger{% endif %}">
+                                {{ n.rata_rata }}
+                            </span>
+                        {% else %}-{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="card border-0 shadow-sm">
+    <div class="card-body text-center py-5">
+        <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+        <h5 class="text-muted">Belum ada data nilai</h5>
+        <p class="text-muted">Nilai pelajaran akan muncul setelah guru memasukkan data.</p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

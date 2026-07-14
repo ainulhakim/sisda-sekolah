@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Data Siswa{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0"><i class="fas fa-user-graduate me-2"></i>Data Siswa</h4>
+    <div class="d-flex gap-2">
+        {% if current_user.role in ('admin','guru') %}
+        <a href="{{ url_for('routes.siswa_tambah') }}" class="btn btn-primary btn-sm"><i class="fas fa-plus me-1"></i>Tambah</a>
+        <a href="{{ url_for('routes.siswa_import') }}" class="btn btn-success btn-sm"><i class="fas fa-file-import me-1"></i>Import</a>
+        <a href="{{ url_for('routes.siswa_export') }}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-file-export me-1"></i>Export</a>
+        {% endif %}
+    </div>
+</div>
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white">
+        <form class="d-flex gap-2 flex-wrap" method="GET">
+            <input type="text" class="form-control form-control-sm" name="search" placeholder="Cari nama..." value="{{ search }}">
+            <select class="form-select form-select-sm" name="kelas_id" style="width:150px">
+                <option value="">Semua Kelas</option>
+                {% for k in kelas_list %}<option value="{{ k.id }}" {% if kelas_id == k.id %}selected{% endif %}>{{ k.nama_kelas }}</option>{% endfor %}
+            </select>
+            <select class="form-select form-select-sm" name="status" style="width:130px">
+                {% for val, label in [('aktif','Aktif'),('keluar','Keluar'),('lulus','Lulus'),('pindah','Pindah')] %}
+                <option value="{{ val }}" {% if status == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            <button class="btn btn-sm btn-primary"><i class="fas fa-search"></i></button>
+        </form>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light"><tr>
+                    <th>#</th><th>Foto</th><th>NISN</th><th>Nama</th><th>Jenis Kelamin</th><th>Kelas</th><th>Status</th><th>Aksi</th>
+                </tr></thead>
+                <tbody>
+                {% for s in siswa.items %}
+                <tr>
+                    <td>{{ (siswa.page-1)*15+loop.index }}</td>
+                    <td>
+                        {% if s.foto_profil %}
+                            <img src="{{ url_for('static', filename='uploads/' + s.foto_profil) }}" class="rounded-circle" width="40" height="40" style="object-fit:cover;">
+                        {% else %}
+                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width:40px;height:40px;font-size:14px;">
+                                {{ s.nama_lengkap[0] }}
+                            </div>
+                        {% endif %}
+                    </td>
+                    <td>{{ s.nisn }}</td>
+                    <td>{{ s.nama_lengkap }}</td>
+                    <td><span class="badge {% if s.jenis_kelamin=='L' %}bg-info{% else %}bg-pink{% endif %}">{{ s.jenis_kelamin }}</span></td>
+                    <td>{{ s.kelas.nama_kelas if s.kelas else '-' }}</td>
+                    <td><span class="badge {% if s.status=='aktif' %}bg-success{% else %}bg-secondary{% endif %}">{{ s.status }}</span></td>
+                    <td>
+                        <a href="{{ url_for('routes.siswa_detail', id=s.id) }}" class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i></a>
+                        {% if current_user.role in ('admin','guru') %}
+                        <a href="{{ url_for('routes.siswa_edit', id=s.id) }}" class="btn btn-sm btn-outline-warning"><i class="fas fa-edit"></i></a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% if siswa.pages > 1 %}
+    <div class="card-footer bg-white">
+        <nav><ul class="pagination pagination-sm mb-0 justify-content-center">
+            {% for p in siswa.iter_pages() %}
+            {% if p %}<li class="page-item {% if p==siswa.page %}active{% endif %}"><a class="page-link" href="?page={{ p }}&search={{ search }}&kelas_id={{ kelas_id }}&status={{ status }}">{{ p }}</a></li>
+            {% else %}<li class="page-item disabled"><span class="page-link">...</span></li>{% endif %}
+            {% endfor %}
+        </ul></nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

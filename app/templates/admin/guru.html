@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}Data Guru{% endblock %}
+{% block content %}
+<h4 class="mb-4"><i class="fas fa-chalkboard-teacher me-2"></i>Data Guru</h4>
+
+{% if adding %}
+<!-- Add Form -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-primary text-white">
+        <h6 class="mb-0"><i class="fas fa-plus me-2"></i>Tambah Guru Baru</h6>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('routes.guru_tambah') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">NIP</label>
+                    <input type="text" class="form-control" name="nip" placeholder="Nomor Induk Pegawai">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Nama Lengkap *</label>
+                    <input type="text" class="form-control" name="nama_lengkap" required placeholder="Nama lengkap guru">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-control" name="email" placeholder="email@guru.com">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">No. HP</label>
+                    <input type="text" class="form-control" name="no_hp" placeholder="08xxxxxxxxxx">
+                </div>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>Simpan</button>
+                <a href="{{ url_for('routes.guru_list') }}" class="btn btn-secondary">Batal</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+{% if editing %}
+<!-- Edit Form -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-warning text-dark">
+        <h6 class="mb-0"><i class="fas fa-edit me-2"></i>Edit Guru: {{ editing.nama_lengkap }}</h6>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('routes.guru_edit', id=editing.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">NIP</label>
+                    <input type="text" class="form-control" name="nip" value="{{ editing.nip or '' }}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Nama Lengkap *</label>
+                    <input type="text" class="form-control" name="nama_lengkap" value="{{ editing.nama_lengkap }}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-control" name="email" value="{{ editing.email or '' }}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">No. HP</label>
+                    <input type="text" class="form-control" name="no_hp" value="{{ editing.no_hp or '' }}">
+                </div>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>Simpan Perubahan</button>
+                <a href="{{ url_for('routes.guru_list') }}" class="btn btn-secondary">Batal</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<!-- List Table -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white d-flex justify-content-between">
+        <h6 class="mb-0">Daftar Guru</h6>
+        {% if not adding and not editing %}
+        <a href="{{ url_for('routes.guru_tambah') }}" class="btn btn-sm btn-primary"><i class="fas fa-plus me-1"></i>Tambah Guru</a>
+        {% endif %}
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-light"><tr><th>#</th><th>NIP</th><th>Nama</th><th>Email</th><th>HP</th><th>Kelas Wali</th><th>Akun</th><th>Aksi</th></tr></thead>
+            <tbody>
+            {% for g in guru_list %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ g.nip or '-' }}</td>
+                <td>{{ g.nama_lengkap }}</td>
+                <td>{{ g.email or '-' }}</td>
+                <td>{{ g.no_hp or '-' }}</td>
+                <td>{% for k in g.kelas_wali %}<span class="badge bg-info">{{ k.nama_kelas }}</span> {% endfor %}{% if not g.kelas_wali %}-{% endif %}</td>
+                <td>
+                    {% if g.user %}
+                        <span class="badge bg-success"><i class="fas fa-check me-1"></i>{{ g.user.username }}</span>
+                        <form method="POST" action="{{ url_for('routes.guru_reset_password', id=g.id) }}" class="d-inline mt-1">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-outline-warning" title="Reset Password" onclick="return confirm('Reset password {{ g.nama_lengkap }}? Password baru akan muncul di notifikasi.')"><i class="fas fa-key me-1"></i>Reset Password</button>
+                        </form>
+                    {% else %}
+                        <form method="POST" action="{{ url_for('routes.guru_akun', id=g.id) }}" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-outline-success" title="Buat Akun Login"><i class="fas fa-key me-1"></i>Buat Akun</button>
+                        </form>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        <a href="{{ url_for('routes.guru_edit', id=g.id) }}" class="btn btn-outline-primary" title="Edit"><i class="fas fa-edit"></i></a>
+                        <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteGuru{{ g.id }}" title="Hapus"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modals -->
+{% for g in guru_list %}
+<div class="modal fade" id="deleteGuru{{ g.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Konfirmasi Hapus</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Yakin ingin menghapus guru <strong>{{ g.nama_lengkap }}</strong>?</p>
+                {% if g.user %}
+                <p class="text-danger"><small><i class="fas fa-info-circle me-1"></i>Akun login (<strong>{{ g.user.username }}</strong>) juga akan dihapus.</small></p>
+                {% endif %}
+                <p class="text-muted"><small>Data tidak akan ditampilkan di daftar guru aktif.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <form method="POST" action="{{ url_for('routes.guru_hapus', id=g.id) }}" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger"><i class="fas fa-trash me-1"></i>Hapus</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{% endblock %}

@@ -1,0 +1,543 @@
+{% extends "base.html" %}
+{% block title %}Assessment Orang Tua - {{ siswa.nama_lengkap }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4><i class="fas fa-users me-2"></i>Assessment Orang Tua: {{ siswa.nama_lengkap }}</h4>
+    <a href="{{ url_for('routes.siswa_detail', id=siswa.id) }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i>Kembali
+    </a>
+</div>
+
+<form method="POST" action="{{ url_for('routes.assessment_ortu_save', siswa_id=siswa.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="accordion" id="assessmentAccordion">
+
+        <!-- ========== A. Profil Keluarga ========== -->
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#sectionA">
+                    <span class="badge bg-primary me-2">A</span> Profil Keluarga
+                </button>
+            </h2>
+            <div id="sectionA" class="accordion-collapse collapse show" data-bs-parent="#assessmentAccordion">
+                <div class="accordion-body">
+                    <!-- Identitas Ayah -->
+                    <h6 class="text-primary mb-3"><i class="fas fa-male me-1"></i> Identitas Ayah</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Nama Lengkap</label>
+                            <input type="text" class="form-control" name="ayah_nama" value="{{ data.get('ayah_nama', '') }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Umur / Tanggal Lahir</label>
+                            <input type="text" class="form-control" name="ayah_umur" value="{{ data.get('ayah_umur', '') }}" placeholder="Contoh: 38 tahun / 15-06-1986">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Pendidikan Terakhir</label>
+                            <input type="text" class="form-control" name="ayah_pendidikan" value="{{ data.get('ayah_pendidikan', '') }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Pekerjaan</label>
+                            <input type="text" class="form-control" name="ayah_pekerjaan" value="{{ data.get('ayah_pekerjaan', '') }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Bidang Pekerjaan</label>
+                            <input type="text" class="form-control" name="ayah_bidang" value="{{ data.get('ayah_bidang', '') }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">No HP</label>
+                            <input type="text" class="form-control" name="ayah_hp" value="{{ data.get('ayah_hp', '') }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" name="ayah_email" value="{{ data.get('ayah_email', '') }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Estimasi Penghasilan</label>
+                            <input type="text" class="form-control" name="ayah_penghasilan" value="{{ data.get('ayah_penghasilan', '') }}">
+                        </div>
+                    </div>
+
+                    <!-- Identitas Ibu -->
+                    <h6 class="text-danger mb-3"><i class="fas fa-female me-1"></i> Identitas Ibu</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Nama Lengkap</label>
+                            <input type="text" class="form-control" name="ibu_nama" value="{{ data.get('ibu_nama', '') }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Pendidikan Terakhir</label>
+                            <input type="text" class="form-control" name="ibu_pendidikan" value="{{ data.get('ibu_pendidikan', '') }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Pekerjaan</label>
+                            <input type="text" class="form-control" name="ibu_pekerjaan" value="{{ data.get('ibu_pekerjaan', '') }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Aktivitas Utama</label>
+                            <input type="text" class="form-control" name="ibu_aktivitas" value="{{ data.get('ibu_aktivitas', '') }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">No HP</label>
+                            <input type="text" class="form-control" name="ibu_hp" value="{{ data.get('ibu_hp', '') }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Estimasi Penghasilan</label>
+                            <input type="text" class="form-control" name="ibu_penghasilan" value="{{ data.get('ibu_penghasilan', '') }}">
+                        </div>
+                    </div>
+
+                    <!-- Identitas Saudara -->
+                    <h6 class="text-success mb-3"><i class="fas fa-people-arrows me-1"></i> Identitas Saudara</h6>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Jumlah Saudara</label>
+                            <input type="number" class="form-control" name="saudara_jumlah" value="{{ data.get('saudara_jumlah', '') }}">
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">Nama-nama Saudara</label>
+                            <input type="text" class="form-control" name="saudara_nama" value="{{ data.get('saudara_nama', '') }}" placeholder="Pisahkan dengan koma">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Siapa yang Tinggal Serumah</label>
+                            <input type="text" class="form-control" name="saudara_rumah" value="{{ data.get('saudara_rumah', '') }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== B. Visi Keluarga ========== -->
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sectionB">
+                    <span class="badge bg-info me-2">B</span> Visi Keluarga
+                </button>
+            </h2>
+            <div id="sectionB" class="accordion-collapse collapse" data-bs-parent="#assessmentAccordion">
+                <div class="accordion-body">
+                    <div class="mb-3">
+                        <label class="form-label">Alasan Memilih Sekolah</label>
+                        <textarea class="form-control" name="visi_alasan" rows="3">{{ data.get('visi_alasan', '') }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Harapan terhadap Pendidikan Anak</label>
+                        <textarea class="form-control" name="visi_harapan" rows="3">{{ data.get('visi_harapan', '') }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Target Setelah Lulus SD</label>
+                        <textarea class="form-control" name="visi_target" rows="3">{{ data.get('visi_target', '') }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nilai yang Dijunjung Keluarga</label>
+                        <textarea class="form-control" name="visi_nilai" rows="3">{{ data.get('visi_nilai', '') }}</textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== C. Pola Asuh ========== -->
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sectionC">
+                    <span class="badge bg-warning text-dark me-2">C</span> Pola Asuh
+                </button>
+            </h2>
+            <div id="sectionC" class="accordion-collapse collapse" data-bs-parent="#assessmentAccordion">
+                <div class="accordion-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Pendamping Utama</label>
+                            <input type="text" class="form-control" name="pola_pendamping" value="{{ data.get('pola_pendamping', '') }}" placeholder="Contoh: Ibu, Kakek/Nenek, dll">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Screen Time (per hari)</label>
+                            <input type="text" class="form-control" name="pola_screentime" value="{{ data.get('pola_screentime', '') }}" placeholder="Contoh: 1 jam">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Aturan di Rumah</label>
+                        <textarea class="form-control" name="pola_aturan" rows="3">{{ data.get('pola_aturan', '') }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Rutinitas</label>
+                        <textarea class="form-control" name="pola_rutinitas" rows="3">{{ data.get('pola_rutinitas', '') }}</textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Ketika Anak Melakukan Kesalahan:</label>
+                        <div class="row g-2">
+                            {% set pola_kesalahan_opts = ['Dinasehati', 'Diajak diskusi', 'Diberi konsekuensi', 'Dimarahi', 'Dibiarkan belajar sendiri'] %}
+                            {% for opt in pola_kesalahan_opts %}
+                            <div class="col-md-4 col-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="pola_kesalahan[]" value="{{ opt }}" id="pola_kesalahan_{{ loop.index }}" {% if opt in data.get('pola_kesalahan', []) %}checked{% endif %}>
+                                    <label class="form-check-label" for="pola_kesalahan_{{ loop.index }}">{{ opt }}</label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Cara Anak Belajar:</label>
+                        <div class="row g-2">
+                            {% set cara_belajar_opts = ['Melihat gambar', 'Melihat Video', 'Mendengar penjelasan', 'Langsung praktik', 'Bermain'] %}
+                            {% for opt in cara_belajar_opts %}
+                            <div class="col-md-4 col-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="pola_belajar[]" value="{{ opt }}" id="pola_belajar_{{ loop.index }}" {% if opt in data.get('pola_belajar', []) %}checked{% endif %}>
+                                    <label class="form-check-label" for="pola_belajar_{{ loop.index }}">{{ opt }}</label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== D. Hubungan Orang Tua dengan Anak ========== -->
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sectionD">
+                    <span class="badge bg-success me-2">D</span> Hubungan Orang Tua dengan Anak
+                </button>
+            </h2>
+            <div id="sectionD" class="accordion-collapse collapse" data-bs-parent="#assessmentAccordion">
+                <div class="accordion-body">
+                    <div class="mb-3">
+                        <label class="form-label">Ayah dan Anak</label>
+                        <textarea class="form-control" name="hub_ayah_anak" rows="3">{{ data.get('hub_ayah_anak', '') }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Ibu dan Anak</label>
+                        <textarea class="form-control" name="hub_ibu_anak" rows="3">{{ data.get('hub_ibu_anak', '') }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Quality Time</label>
+                        <textarea class="form-control" name="hub_quality_time" rows="3">{{ data.get('hub_quality_time', '') }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Komunikasi</label>
+                        <textarea class="form-control" name="hub_komunikasi" rows="3">{{ data.get('hub_komunikasi', '') }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Cara Memberi Apresiasi</label>
+                        <textarea class="form-control" name="hub_apresiasi" rows="3">{{ data.get('hub_apresiasi', '') }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Cara Mendisiplinkan</label>
+                        <textarea class="form-control" name="hub_disiplin" rows="3">{{ data.get('hub_disiplin', '') }}</textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== E. Kebiasaan Anak di Rumah ========== -->
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sectionE">
+                    <span class="badge bg-secondary me-2">E</span> Kebiasaan Anak di Rumah
+                </button>
+            </h2>
+            <div id="sectionE" class="accordion-collapse collapse" data-bs-parent="#assessmentAccordion">
+                <div class="accordion-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Tidur</label>
+                            <input type="text" class="form-control" name="kebiasaan_tidur" value="{{ data.get('kebiasaan_tidur', '') }}" placeholder="Jam tidur">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Bangun</label>
+                            <input type="text" class="form-control" name="kebiasaan_bangun" value="{{ data.get('kebiasaan_bangun', '') }}" placeholder="Jam bangun">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Makan</label>
+                            <input type="text" class="form-control" name="kebiasaan_makan" value="{{ data.get('kebiasaan_makan', '') }}" placeholder="Jadwal makan">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Bermain</label>
+                            <input type="text" class="form-control" name="kebiasaan_bermain" value="{{ data.get('kebiasaan_bermain', '') }}" placeholder="Waktu bermain">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Membaca</label>
+                            <input type="text" class="form-control" name="kebiasaan_membaca" value="{{ data.get('kebiasaan_membaca', '') }}" placeholder="Waktu membaca">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Mengaji</label>
+                            <input type="text" class="form-control" name="kebiasaan_mengaji" value="{{ data.get('kebiasaan_mengaji', '') }}" placeholder="Waktu mengaji">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== F. Persepsi Orang Tua terhadap Kemampuan Anak ========== -->
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sectionF">
+                    <span class="badge bg-danger me-2">F</span> Persepsi Orang Tua terhadap Kemampuan Anak
+                </button>
+            </h2>
+            <div id="sectionF" class="accordion-collapse collapse" data-bs-parent="#assessmentAccordion">
+                <div class="accordion-body">
+                    <p class="text-muted mb-3">Rating: 1 = Sangat Kurang, 2 = Kurang, 3 = Cukup, 4 = Baik, 5 = Sangat Baik</p>
+                    {% set persepsi_items = [
+                        ('persepsi_keberanian', 'Keberanian Berbicara'),
+                        ('persepsi_konsentrasi', 'Konsentrasi'),
+                        ('persepsi_instruksi', 'Mengikuti Instruksi'),
+                        ('persepsi_dengar', 'Kemampuan Mendengar'),
+                        ('persepsi_ingat', 'Daya Ingat'),
+                        ('persepsi_tahu', 'Rasa Ingin Tahu'),
+                        ('persepsi_kerjasama', 'Kerjasama'),
+                        ('persepsi_empati', 'Empati'),
+                        ('persepsi_mandiri', 'Kemandirian'),
+                        ('persepsi_disiplin', 'Disiplin'),
+                        ('persepsi_leader', 'Kepemimpinan'),
+                        ('persepsi_problem', 'Problem Solving'),
+                        ('persepsi_motorhalus', 'Motorik Halus'),
+                        ('persepsi_motorkasar', 'Motorik Kasar'),
+                        ('persepsi_kreatif', 'Kreativitas')
+                    ] %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width:50%">Kemampuan</th>
+                                    <th class="text-center" style="width:10%">1</th>
+                                    <th class="text-center" style="width:10%">2</th>
+                                    <th class="text-center" style="width:10%">3</th>
+                                    <th class="text-center" style="width:10%">4</th>
+                                    <th class="text-center" style="width:10%">5</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for field, label in persepsi_items %}
+                                <tr>
+                                    <td>{{ label }}</td>
+                                    {% for val in [1,2,3,4,5] %}
+                                    <td class="text-center">
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="{{ field }}" value="{{ val }}" id="{{ field }}_{{ val }}" {% if data.get(field)|int == val %}checked{% endif %}>
+                                        </div>
+                                    </td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== G. Kemampuan Akademik ========== -->
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sectionG">
+                    <span class="badge bg-dark me-2">G</span> Kemampuan Akademik
+                </button>
+            </h2>
+            <div id="sectionG" class="accordion-collapse collapse" data-bs-parent="#assessmentAccordion">
+                <div class="accordion-body">
+                    <p class="text-muted mb-3">Rating: 1 = Sangat Kurang, 2 = Kurang, 3 = Cukup, 4 = Baik, 5 = Sangat Baik</p>
+                    {% set akademik_items = [
+                        ('akademik_huruf', 'Mengenal Huruf'),
+                        ('akademik_baca', 'Membaca'),
+                        ('akademik_tulis', 'Menulis'),
+                        ('akademik_hitung', 'Berhitung'),
+                        ('akademik_gambar', 'Menggambar'),
+                        ('akademik_hafal', 'Menghafal'),
+                        ('akademik_cerita', 'Bercerita'),
+                        ('akademik_english', 'Bahasa Inggris'),
+                        ('akademik_mengaji', 'Mengaji'),
+                        ('akademik_quran', 'Hafalan Quran')
+                    ] %}
+                    <div class="table-responsive mb-4">
+                        <table class="table table-bordered align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width:50%">Kemampuan</th>
+                                    <th class="text-center" style="width:10%">1</th>
+                                    <th class="text-center" style="width:10%">2</th>
+                                    <th class="text-center" style="width:10%">3</th>
+                                    <th class="text-center" style="width:10%">4</th>
+                                    <th class="text-center" style="width:10%">5</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for field, label in akademik_items %}
+                                <tr>
+                                    <td>{{ label }}</td>
+                                    {% for val in [1,2,3,4,5] %}
+                                    <td class="text-center">
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="{{ field }}" value="{{ val }}" id="{{ field }}_{{ val }}" {% if data.get(field)|int == val %}checked{% endif %}>
+                                        </div>
+                                    </td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h6 class="text-muted mb-3">Detail Bahasa Inggris & Minat</h6>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Pernah Belajar Bahasa Inggris</label>
+                            <input type="text" class="form-control" name="akademik_english_belajar" value="{{ data.get('akademik_english_belajar', '') }}" placeholder="Ya/Tidak + keterangan">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Berapa Lama Mengenal Bahasa Inggris</label>
+                            <input type="text" class="form-control" name="akademik_english_lama" value="{{ data.get('akademik_english_lama', '') }}">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Penggunaan Bahasa Inggris di Rumah</label>
+                            <textarea class="form-control" name="akademik_english_rumah" rows="3">{{ data.get('akademik_english_rumah', '') }}</textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Kekuatan dan Minat Anak</label>
+                            <textarea class="form-control" name="akademik_kekuatan" rows="3">{{ data.get('akademik_kekuatan', '') }}</textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== H. Minat Anak ========== -->
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sectionH">
+                    <span class="badge bg-purple me-2" style="background-color:#6f42c1">H</span> Minat Anak
+                </button>
+            </h2>
+            <div id="sectionH" class="accordion-collapse collapse" data-bs-parent="#assessmentAccordion">
+                <div class="accordion-body">
+                    <label class="form-label fw-bold">Pilih Minat Anak (bisa lebih dari satu):</label>
+                    <div class="row g-2">
+                        {% set minat_opts = ['Robot', 'Lego', 'Puzzle', 'Coding', 'Menggambar', 'Membaca', 'Olahraga', 'Sains', 'Seni', 'Memasak', 'Eksperimen'] %}
+                        {% for opt in minat_opts %}
+                        <div class="col-md-3 col-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="minat_anak[]" value="{{ opt }}" id="minat_{{ loop.index }}" {% if opt in data.get('minat_anak', []) %}checked{% endif %}>
+                                <label class="form-check-label" for="minat_{{ loop.index }}">{{ opt }}</label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        <div class="col-md-3 col-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="minat_anak[]" value="Lainnya" id="minat_lainnya" {% if 'Lainnya' in data.get('minat_anak', []) %}checked{% endif %}>
+                                <label class="form-check-label" for="minat_lainnya">Lainnya</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <label class="form-label">Jika Lainnya, sebutkan:</label>
+                        <input type="text" class="form-control" name="minat_lainnya_text" value="{{ data.get('minat_lainnya_text', '') }}" placeholder="Sebutkan minat lainnya...">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== I. Parent Hope ========== -->
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sectionI">
+                    <span class="badge bg-primary me-2">I</span> Parent Hope
+                </button>
+            </h2>
+            <div id="sectionI" class="accordion-collapse collapse" data-bs-parent="#assessmentAccordion">
+                <div class="accordion-body">
+                    {% set hope_items = [
+                        ('hope_agama', 'Dari segi Agama dan Ibadah'),
+                        ('hope_hafalan', 'Dari segi Bacaan dan Hafalan Anak'),
+                        ('hope_komunikasi', 'Dari segi Kemampuan Komunikasi'),
+                        ('hope_sosial', 'Dari segi Sosial'),
+                        ('hope_akhlaq', 'Dari segi Kebiasaan Anak (Akhlaq) dan Muamalah'),
+                        ('hope_kemandirian', 'Dari segi Kemandirian'),
+                        ('hope_steam', 'Dari segi Kemampuan STEAM')
+                    ] %}
+                    {% for field, label in hope_items %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">{{ label }}</label>
+                        <textarea class="form-control" name="{{ field }}" rows="3">{{ data.get(field, '') }}</textarea>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== J. Keterlibatan Orang Tua ========== -->
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sectionJ">
+                    <span class="badge bg-success me-2">J</span> Keterlibatan Orang Tua
+                </button>
+            </h2>
+            <div id="sectionJ" class="accordion-collapse collapse" data-bs-parent="#assessmentAccordion">
+                <div class="accordion-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <h6 class="text-primary"><i class="fas fa-male me-1"></i> Keterlibatan Ayah</h6>
+                            {% set ayah_opts = ['Narasumber profesi', 'Volunteer kegiatan', 'Pendamping saat outing', 'Donatur program'] %}
+                            {% for opt in ayah_opts %}
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" name="keterlibatan_ayah[]" value="{{ opt }}" id="ayah_{{ loop.index }}" {% if opt in data.get('keterlibatan_ayah', []) %}checked{% endif %}>
+                                <label class="form-check-label" for="ayah_{{ loop.index }}">{{ opt }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-danger"><i class="fas fa-female me-1"></i> Keterlibatan Ibu</h6>
+                            {% set ibu_opts = ['Story telling', 'Parenting class', 'Cooking class', 'Volunteer sekolah'] %}
+                            {% for opt in ibu_opts %}
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" name="keterlibatan_ibu[]" value="{{ opt }}" id="ibu_{{ loop.index }}" {% if opt in data.get('keterlibatan_ibu', []) %}checked{% endif %}>
+                                <label class="form-check-label" for="ibu_{{ loop.index }}">{{ opt }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== Pertanyaan Reflektif ========== -->
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sectionReflektif">
+                    <span class="badge bg-warning text-dark me-2">✨</span> Pertanyaan Reflektif
+                </button>
+            </h2>
+            <div id="sectionReflektif" class="accordion-collapse collapse" data-bs-parent="#assessmentAccordion">
+                <div class="accordion-body">
+                    {% set reflektif_items = [
+                        ('reflektif_favorit', 'Aktivitas favorit Ayah bersama anak'),
+                        ('reflektif_kelebihan', 'Kelebihan anak menurut Ayah'),
+                        ('reflektif_tantangan', 'Tantangan terbesar anak saat ini'),
+                        ('reflektif_bangga', 'Yang paling sering membuat Ayah bangga'),
+                        ('reflektif_khawatir', 'Yang paling sering membuat Ayah khawatir')
+                    ] %}
+                    {% for field, label in reflektif_items %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">{{ label }}</label>
+                        <textarea class="form-control" name="{{ field }}" rows="3">{{ data.get(field, '') }}</textarea>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+    </div><!-- end accordion -->
+
+    <div class="mt-4 d-flex gap-2">
+        <button type="submit" class="btn btn-primary btn-lg">
+            <i class="fas fa-save me-2"></i>Simpan Assessment Orang Tua
+        </button>
+        <a href="{{ url_for('routes.siswa_detail', id=siswa.id) }}" class="btn btn-secondary btn-lg">Batal</a>
+    </div>
+</form>
+{% endblock %}

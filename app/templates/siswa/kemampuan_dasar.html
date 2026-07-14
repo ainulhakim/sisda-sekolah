@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block title %}Kemampuan Dasar - {{ siswa.nama_lengkap }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0"><i class="fas fa-chart-radar me-2"></i>Kemampuan Dasar</h4>
+    <a href="{{ url_for('routes.siswa_detail', id=siswa.id) }}" class="btn btn-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i>Kembali
+    </a>
+</div>
+
+<!-- Student Info Card -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <div class="d-flex align-items-center gap-3">
+            {% if siswa.foto_profil %}
+                <img src="{{ url_for('static', filename='uploads/' + siswa.foto_profil) }}"
+                     class="rounded-circle" width="60" height="60" style="object-fit:cover;">
+            {% else %}
+                <div class="display-6">🎓</div>
+            {% endif %}
+            <div>
+                <h5 class="mb-0">{{ siswa.nama_lengkap }}</h5>
+                <span class="text-muted">{{ siswa.kelas.nama_kelas if siswa.kelas else '-' }}</span>
+                {% if total_items > 0 %}
+                    <span class="ms-2 badge bg-info">{{ total_tercapai }}/{{ total_items }} item tercapai</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if not has_any_results %}
+<!-- No Data Message -->
+<div class="card border-0 shadow-sm">
+    <div class="card-body text-center py-5">
+        <div class="display-1 mb-3">📋</div>
+        <h5 class="text-muted">Belum ada data assessment</h5>
+        <p class="text-muted">Silakan isi assessment terlebih dahulu.</p>
+        <a href="{{ url_for('routes.assessment_view', siswa_id=siswa.id) }}" class="btn btn-info">
+            <i class="fas fa-clipboard-check me-1"></i>Isi Assessment Sekarang
+        </a>
+    </div>
+</div>
+{% else %}
+
+<!-- Radar Chart -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white">
+        <h6 class="mb-0">📊 Radar Kemampuan Dasar</h6>
+    </div>
+    <div class="card-body">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-5">
+                <canvas id="radarChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Domain Detail Cards -->
+<div class="row g-3">
+    {% for domain_name, data in domain_data.items() %}
+    <div class="col-md-6 col-lg-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">
+                    {% if domain_name == 'Fisik' %}🏃
+                    {% elif domain_name == 'Kognitif' %}🧠
+                    {% elif domain_name == 'Bahasa' %}🗣️
+                    {% elif domain_name == 'Sosial' %}🤝
+                    {% elif domain_name == 'Agama' %}🕌
+                    {% elif domain_name == 'Karakter' %}⭐
+                    {% endif %}
+                    {{ domain_name }}
+                </h6>
+                <span class="badge {% if data.pct >= 70 %}bg-success{% elif data.pct >= 40 %}bg-warning{% else %}bg-danger{% endif %}">
+                    {{ data.pct }}%
+                </span>
+            </div>
+            <div class="card-body p-0">
+                <!-- Progress bar -->
+                <div class="px-3 pt-3">
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar {% if data.pct >= 70 %}bg-success{% elif data.pct >= 40 %}bg-warning{% else %}bg-danger{% endif %}"
+                             style="width: {{ data.pct }}%"></div>
+                    </div>
+                    <small class="text-muted d-block mt-1">{{ data.tercapai }}/{{ data.total }} item tercapai</small>
+                </div>
+                <!-- Items list -->
+                <ul class="list-group list-group-flush mt-2">
+                    {% for item in data['items'] %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                        <span>
+                            <small class="text-muted">{{ item.kode }}</small>
+                            {{ item.nama }}
+                        </span>
+                        <span class="badge {% if item.status == '✔' %}bg-success{% elif item.status == '✘' %}bg-danger{% else %}bg-secondary{% endif %}">
+                            {{ item.status }}
+                        </span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if has_any_results %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const domainData = {{ domain_data | tojson }};
+
+    const labels = Object.keys(domainData);
+    const values = labels.map(d => domainData[d].pct);
+
+    const getColor = (v) => {
+        if (v >= 70) return 'rgba(25, 135, 84, 0.2)';
+        if (v >= 40) return 'rgba(255, 193, 7, 0.2)';
+        return 'rgba(220, 53, 69, 0.2)';
+    };
+    const getBorderColor = (v) => {
+        if (v >= 70) return 'rgba(25, 135, 84, 0.8)';
+        if (v >= 40) return 'rgba(255, 193, 7, 0.8)';
+        return 'rgba(220, 53, 69, 0.8)';
+    };
+
+    const backgroundColors = values.map(getColor);
+    const borderColors = values.map(getBorderColor);
+
+    const ctx = document.getElementById('radarChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Persentase',
+                data: values,
+                backgroundColor: 'rgba(13, 110, 253, 0.15)',
+                borderColor: 'rgba(13, 110, 253, 0.8)',
+                borderWidth: 2,
+                pointBackgroundColor: values.map(getBorderColor),
+                pointBorderColor: values.map(getBorderColor),
+                pointRadius: 5,
+                pointHoverRadius: 7,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            scales: {
+                r: {
+                    beginAtZero: true,
+                    min: 0,
+                    max: 100,
+                    ticks: {
+                        stepSize: 20,
+                        callback: function(value) {
+                            return value + '%';
+                        },
+                        backdropColor: 'transparent',
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.1)',
+                    },
+                    pointLabels: {
+                        font: {
+                            size: 13,
+                            weight: 'bold'
+                        }
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const domain = context.label;
+                            const d = domainData[domain];
+                            return [
+                                domain + ': ' + context.parsed.r + '%',
+                                d.tercapai + '/' + d.total + ' item tercapai'
+                            ];
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Lomba & Prestasi{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0"><i class="fas fa-trophy me-2"></i>Lomba & Prestasi</h4>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('routes.prestasi_tambah') }}" class="btn btn-success btn-sm"><i class="fas fa-medal me-1"></i>Tambah Prestasi</a>
+        <a href="{{ url_for('routes.lomba_tambah') }}" class="btn btn-primary btn-sm"><i class="fas fa-plus me-1"></i>Tambah Lomba</a>
+    </div>
+</div>
+
+<!-- Search -->
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body py-2">
+        <form class="d-flex gap-2" method="GET">
+            <input type="text" class="form-control form-control-sm" name="search" placeholder="Cari nama lomba..." value="{{ search }}">
+            <button class="btn btn-sm btn-primary"><i class="fas fa-search"></i></button>
+        </form>
+    </div>
+</div>
+
+<!-- Daftar Lomba -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white"><h6 class="mb-0"><i class="fas fa-list me-2"></i>Daftar Lomba</h6></div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr><th>#</th><th>Nama Lomba</th><th>Bidang</th><th>Tingkat</th><th>Penyelenggara</th><th>Tanggal</th><th>Prestasi</th><th>Aksi</th></tr>
+                </thead>
+                <tbody>
+                {% for l in lomba_list %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td><strong>{{ l.nama_lomba }}</strong></td>
+                    <td><span class="badge bg-info text-dark">{{ l.bidang or '-' }}</span></td>
+                    <td><span class="badge bg-secondary">{{ l.tingkat or '-' }}</span></td>
+                    <td>{{ l.penyelenggara or '-' }}</td>
+                    <td>{{ l.tanggal.strftime('%d/%m/%Y') if l.tanggal else '-' }}</td>
+                    <td><span class="badge bg-primary">{{ l.jumlah_prestasi }} siswa</span></td>
+                    <td>
+                        <a href="{{ url_for('routes.lomba_edit', id=l.id) }}" class="btn btn-sm btn-outline-warning" title="Edit"><i class="fas fa-edit"></i></a>
+                        <form method="POST" action="{{ url_for('routes.lomba_hapus', id=l.id) }}" class="d-inline" onsubmit="return confirm('Hapus lomba {{ l.nama_lomba }}?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button class="btn btn-sm btn-outline-danger" title="Hapus"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if not lomba_list %}
+                <tr><td colspan="8" class="text-center text-muted py-4">Belum ada data lomba</td></tr>
+                {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Daftar Prestasi Terbaru -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white"><h6 class="mb-0"><i class="fas fa-medal me-2"></i>Prestasi Terbaru</h6></div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr><th>#</th><th>Siswa</th><th>Lomba</th><th>Juara</th><th>Kategori</th><th>Tanggal</th><th>Aksi</th></tr>
+                </thead>
+                <tbody>
+                {% for p in lomba_list %}
+                    {% for prest in p.prestasi_list|sort(attribute='juara_angka') %}
+                    <tr>
+                        <td>{{ loop.parent.loop.index }}.{{ loop.index }}</td>
+                        <td>{{ prest.siswa.nama_lengkap }}</td>
+                        <td>{{ prest.lomba.nama_lomba }}</td>
+                        <td><span class="badge bg-{{ prest.juara_color }} {% if prest.juara_color == 'warning' %}text-dark{% endif %}">{{ prest.juara or '-' }}</span></td>
+                        <td>{{ prest.kategori or '-' }}</td>
+                        <td>{{ prest.tanggal_dapat.strftime('%d/%m/%Y') if prest.tanggal_dapat else '-' }}</td>
+                        <td>
+                            <a href="{{ url_for('routes.prestasi_edit', id=prest.id) }}" class="btn btn-sm btn-outline-warning" title="Edit"><i class="fas fa-edit"></i></a>
+                            <form method="POST" action="{{ url_for('routes.prestasi_hapus', id=prest.id) }}" class="d-inline" onsubmit="return confirm('Hapus prestasi ini?')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button class="btn btn-sm btn-outline-danger" title="Hapus"><i class="fas fa-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

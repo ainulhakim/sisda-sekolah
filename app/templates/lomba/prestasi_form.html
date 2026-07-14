@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if prestasi else 'Tambah' }} Prestasi{% endblock %}
+{% block content %}
+<h4 class="mb-4"><i class="fas fa-medal me-2"></i>{{ 'Edit' if prestasi else 'Tambah' }} Prestasi Lomba</h4>
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Siswa <span class="text-danger">*</span></label>
+                    <select class="form-select" name="siswa_id" required>
+                        <option value="">-- Pilih Siswa --</option>
+                        {% for s in siswa_list %}
+                        <option value="{{ s.id }}" {% if prestasi and prestasi.siswa_id == s.id %}selected{% endif %}>{{ s.nama_lengkap }} ({{ s.kelas.nama_kelas if s.kelas else '-' }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Lomba <span class="text-danger">*</span></label>
+                    <select class="form-select" name="lomba_id" required>
+                        <option value="">-- Pilih Lomba --</option>
+                        {% for l in lomba_list %}
+                        <option value="{{ l.id }}" {% if prestasi and prestasi.lomba_id == l.id %}selected{% endif %}>{{ l.nama_lomba }} ({{ l.tingkat or '-' }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Juara</label>
+                    <select class="form-select" name="juara">
+                        <option value="">-- Pilih --</option>
+                        {% for j in ['Juara 1','Juara 2','Juara 3','Harapan 1','Harapan 2','Harapan 3','Peserta'] %}
+                        <option value="{{ j }}" {% if prestasi and prestasi.juara == j %}selected{% endif %}>{{ j }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Kategori</label>
+                    <select class="form-select" name="kategori">
+                        <option value="">-- Pilih --</option>
+                        {% for k in ['Tunggal','Regu','Perorangan','Kelompok'] %}
+                        <option value="{{ k }}" {% if prestasi and prestasi.kategori == k %}selected{% endif %}>{{ k }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Tanggal Dapat</label>
+                    <input type="date" class="form-control" name="tanggal_dapat" value="{{ prestasi.tanggal_dapat.strftime('%Y-%m-%d') if prestasi and prestasi.tanggal_dapat else '' }}">
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Catatan</label>
+                <textarea class="form-control" name="catatan" rows="3" placeholder="Keterangan tambahan...">{{ prestasi.catatan if prestasi else '' }}</textarea>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>Simpan</button>
+                <a href="{{ url_for('routes.lomba_list') }}" class="btn btn-outline-secondary">Batal</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

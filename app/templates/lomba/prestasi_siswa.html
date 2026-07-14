@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Prestasi {{ siswa.nama_lengkap }}{% endblock %}
+{% block content %}
+<h4 class="mb-4"><i class="fas fa-medal me-2"></i>Prestasi: {{ siswa.nama_lengkap }}</h4>
+<p class="text-muted">Kelas: {{ siswa.kelas.nama_kelas if siswa.kelas else '-' }}</p>
+
+{% if prestasi_list %}
+<div class="row g-3">
+    {% for p in prestasi_list %}
+    <div class="col-md-6 col-lg-4">
+        <div class="card border h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h6 class="mb-0">{{ p.lomba.nama_lomba }}</h6>
+                    <span class="badge bg-{{ p.juara_color }} {% if p.juara_color == 'warning' %}text-dark{% endif %} fs-6">{{ p.juara or 'Peserta' }}</span>
+                </div>
+                <p class="text-muted small mb-1">
+                    <i class="fas fa-calendar me-1"></i>{{ p.tanggal_dapat.strftime('%d %B %Y') if p.tanggal_dapat else '-' }}
+                    {% if p.lomba.tingkat %}<span class="badge bg-secondary ms-1">{{ p.lomba.tingkat }}</span>{% endif %}
+                    {% if p.kategori %}<span class="badge bg-info text-dark ms-1">{{ p.kategori }}</span>{% endif %}
+                </p>
+                {% if p.catatan %}
+                <p class="small mb-0"><em>{{ p.catatan }}</em></p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-5">
+    <div class="display-1 mb-2">🏆</div>
+    <p class="text-muted">Belum ada prestasi tercatat untuk siswa ini.</p>
+</div>
+{% endif %}
+
+<div class="mt-3">
+    <a href="{{ url_for('routes.siswa_detail', id=siswa.id) }}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i>Kembali</a>
+</div>
+{% endblock %}

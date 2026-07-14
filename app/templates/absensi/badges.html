@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Badge{% endblock %}
+{% block content %}
+<h4 class="mb-4"><i class="fas fa-medal me-2"></i>Badge & Penghargaan</h4>
+<div class="row g-3">
+    {% for b in all_badges %}
+    {% set earned = b.id in earned_ids %}
+    <div class="col-6 col-md-4 col-lg-3">
+        <div class="card border-0 shadow-sm badge-display {% if not earned %}opacity-50{% endif %}" style="border-left: 4px solid {{ b.warna }}">
+            <div class="card-body text-center p-4">
+                <div class="display-3 mb-2 {% if not earned %}grayscale{% endif %}">{{ b.icon_emoji }}</div>
+                <h6 class="mb-1">{{ b.nama }}</h6>
+                <small class="text-muted d-block mb-2">{{ b.deskripsi }}</small>
+                {% if earned %}
+                <span class="badge bg-success"><i class="fas fa-check me-1"></i>Diraih!</span>
+                {% if earned_map.get(b.id) %}
+                <small class="d-block text-muted mt-1">{{ earned_map[b.id].tanggal_dapat.strftime('%d/%m/%Y') }}</small>
+                {% endif %}
+                {% else %}
+                <span class="badge bg-secondary">Belum diraih</span>
+                <small class="d-block text-muted mt-1">{{ b.syarat_tipe }}: {{ b.syarat_nilai }}</small>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

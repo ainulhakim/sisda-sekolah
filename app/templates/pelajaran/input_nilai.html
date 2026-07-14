@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}Input Nilai - {{ mp.nama }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">
+        <i class="fas fa-pen-to-square me-2"></i>Input Nilai: {{ mp.nama }}
+        <small class="text-muted">({{ mp.kode }})</small>
+    </h4>
+    <a href="{{ url_for('routes.pelajaran_list') }}" class="btn btn-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i>Kembali
+    </a>
+</div>
+
+<!-- Filter Bar -->
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body py-2">
+        <form method="GET" class="row g-2 align-items-center">
+            <div class="col-auto">
+                <label class="form-label small fw-bold mb-0">Semester</label>
+            </div>
+            <div class="col-auto">
+                <select name="semester" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="1" {{ 'selected' if semester == 1 }}>Semester 1</option>
+                    <option value="2" {{ 'selected' if semester == 2 }}>Semester 2</option>
+                </select>
+            </div>
+            {% if current_user.role == 'admin' %}
+            <div class="col-auto">
+                <label class="form-label small fw-bold mb-0">Kelas</label>
+            </div>
+            <div class="col-auto">
+                <select name="kelas_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">Semua Kelas</option>
+                    {% for k in kelas_list %}
+                    <option value="{{ k.id }}" {{ 'selected' if request.args.get('kelas_id', type=int) == k.id }}>{{ k.nama_kelas }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            {% if ta %}
+            <div class="col-auto">
+                <span class="badge bg-info">TA: {{ ta.nama }}</span>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+{% if siswa_list %}
+<form method="POST" action="{{ url_for('routes.pelajaran_input_nilai', id=mp.id, semester=semester) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm mb-0" id="gradeTable">
+                    <thead class="table-primary">
+                        <tr>
+                            <th rowspan="2" class="text-center align-middle sticky-col">#</th>
+                            <th rowspan="2" class="align-middle sticky-col">Nama Siswa</th>
+                            <th colspan="4" class="text-center">Ulangan Harian</th>
+                            <th colspan="3" class="text-center">Tugas</th>
+                            <th colspan="2" class="text-center">Ujian</th>
+                            <th rowspan="2" class="text-center align-middle">Rata-rata</th>
+                            <th rowspan="2" class="text-center align-middle">Catatan</th>
+                        </tr>
+                        <tr class="table-light">
+                            <th class="text-center" title="Ulangan Harian 1">UH1</th>
+                            <th class="text-center" title="Ulangan Harian 2">UH2</th>
+                            <th class="text-center" title="Ulangan Harian 3">UH3</th>
+                            <th class="text-center" title="Ulangan Harian 4">UH4</th>
+                            <th class="text-center" title="Tugas 1">T1</th>
+                            <th class="text-center" title="Tugas 2">T2</th>
+                            <th class="text-center" title="Tugas 3">T3</th>
+                            <th class="text-center" title="Ujian Tengah Semester">UTS</th>
+                            <th class="text-center" title="Ujian Akhir Semester">UAS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in siswa_list %}
+                        {% set g = existing_grades.get(s.id) %}
+                        <tr data-siswa-id="{{ s.id }}">
+                            <td class="text-center sticky-col">{{ loop.index }}</td>
+                            <td class="sticky-col fw-bold">{{ s.nama_lengkap }}</td>
+                            <td><input type="number" class="form-control form-control-sm grade-input" name="siswa_{{ s.id }}_uh_1" min="0" max="100" step="0.1" value="{{ g.uh_1 if g and g.uh_1 is not none else '' }}" placeholder="-"></td>
+                            <td><input type="number" class="form-control form-control-sm grade-input" name="siswa_{{ s.id }}_uh_2" min="0" max="100" step="0.1" value="{{ g.uh_2 if g and g.uh_2 is not none else '' }}" placeholder="-"></td>
+                            <td><input type="number" class="form-control form-control-sm grade-input" name="siswa_{{ s.id }}_uh_3" min="0" max="100" step="0.1" value="{{ g.uh_3 if g and g.uh_3 is not none else '' }}" placeholder="-"></td>
+                            <td><input type="number" class="form-control form-control-sm grade-input" name="siswa_{{ s.id }}_uh_4" min="0" max="100" step="0.1" value="{{ g.uh_4 if g and g.uh_4 is not none else '' }}" placeholder="-"></td>
+                            <td><input type="number" class="form-control form-control-sm grade-input" name="siswa_{{ s.id }}_tugas_1" min="0" max="100" step="0.1" value="{{ g.tugas_1 if g and g.tugas_1 is not none else '' }}" placeholder="-"></td>
+                            <td><input type="number" class="form-control form-control-sm grade-input" name="siswa_{{ s.id }}_tugas_2" min="0" max="100" step="0.1" value="{{ g.tugas_2 if g and g.tugas_2 is not none else '' }}" placeholder="-"></td>
+                            <td><input type="number" class="form-control form-control-sm grade-input" name="siswa_{{ s.id }}_tugas_3" min="0" max="100" step="0.1" value="{{ g.tugas_3 if g and g.tugas_3 is not none else '' }}" placeholder="-"></td>
+                            <td><input type="number" class="form-control form-control-sm grade-input" name="siswa_{{ s.id }}_uts" min="0" max="100" step="0.1" value="{{ g.uts if g and g.uts is not none else '' }}" placeholder="-"></td>
+                            <td><input type="number" class="form-control form-control-sm grade-input" name="siswa_{{ s.id }}_uas" min="0" max="100" step="0.1" value="{{ g.uas if g and g.uas is not none else '' }}" placeholder="-"></td>
+                            <td class="text-center avg-cell fw-bold text-primary">
+                                {% if g and g.rata_rata is not none %}{{ g.rata_rata }}{% else %}-{% endif %}
+                            </td>
+                            <td><input type="text" class="form-control form-control-sm" name="siswa_{{ s.id }}_catatan" value="{{ g.catatan if g and g.catatan else '' }}" placeholder="Catatan..." style="min-width:120px;"></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+                <i class="fas fa-info-circle me-1"></i>
+                Nilai 0-100. Kosongkan jika tidak ada. Rata-rata dihitung otomatis. Hanya siswa dengan data yang diisi yang akan disimpan.
+            </small>
+            <button type="submit" class="btn btn-success" id="saveBtn">
+                <i class="fas fa-save me-1"></i>Simpan Nilai ({{ siswa_list|length }} siswa)
+            </button>
+        </div>
+    </div>
+</form>
+{% else %}
+<div class="card border-0 shadow-sm">
+    <div class="card-body text-center py-5">
+        <i class="fas fa-users fa-3x text-muted mb-3"></i>
+        <h5 class="text-muted">Tidak ada siswa ditemukan</h5>
+        <p class="text-muted">
+            {% if current_user.role == 'guru' %}
+            Anda belum menjadi wali kelas atau tidak ada kelas yang ditugaskan.
+            {% else %}
+            Tidak ada siswa aktif. Tambahkan siswa terlebih dahulu.
+            {% endif %}
+        </p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const gradeInputs = document.querySelectorAll('.grade-input');
+    
+    // Auto-calculate average on input change
+    gradeInputs.forEach(function(input) {
+        input.addEventListener('input', function() {
+            const row = this.closest('tr');
+            calculateAverage(row);
+        });
+        
+        // Validate range on blur
+        input.addEventListener('blur', function() {
+            const val = parseFloat(this.value);
+            if (!isNaN(val)) {
+                if (val < 0) this.value = 0;
+                if (val > 100) this.value = 100;
+            }
+        });
+    });
+    
+    function calculateAverage(row) {
+        const inputs = row.querySelectorAll('.grade-input');
+        let total = 0, count = 0;
+        inputs.forEach(function(inp) {
+            const val = parseFloat(inp.value);
+            if (!isNaN(val) && val >= 0 && val <= 100) {
+                total += val;
+                count++;
+            }
+        });
+        const avgCell = row.querySelector('.avg-cell');
+        if (count > 0) {
+            const avg = (total / count).toFixed(1);
+            avgCell.textContent = avg;
+            // Color code
+            if (avg >= 80) avgCell.className = 'text-center avg-cell fw-bold text-success';
+            else if (avg >= 60) avgCell.className = 'text-center avg-cell fw-bold text-warning';
+            else avgCell.className = 'text-center avg-cell fw-bold text-danger';
+        } else {
+            avgCell.textContent = '-';
+            avgCell.className = 'text-center avg-cell fw-bold text-primary';
+        }
+    }
+    
+    // Calculate all on load
+    document.querySelectorAll('#gradeTable tbody tr').forEach(calculateAverage);
+});
+</script>
+<style>
+.sticky-col {
+    position: sticky;
+    left: 0;
+    background: white;
+    z-index: 1;
+}
+.table-responsive { max-height: 70vh; overflow-y: auto; }
+#gradeTable thead { position: sticky; top: 0; z-index: 2; }
+#gradeTable td input { width: 70px; text-align: center; }
+</style>
+{% endblock %}

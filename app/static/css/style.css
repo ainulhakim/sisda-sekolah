@@ -1,0 +1,84 @@
+/* SiSD Design System */
+:root {
+    --primary: #4A90D9;
+    --success: #27AE60;
+    --warning: #F39C12;
+    --danger: #E74C3C;
+    --sidebar-width: 260px;
+    --sidebar-bg: #1a1a2e;
+}
+
+body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; }
+
+/* Sidebar */
+.sidebar {
+    position: fixed; top: 0; left: 0; width: var(--sidebar-width); height: 100vh;
+    background: var(--sidebar-bg); z-index: 1000; overflow-y: auto;
+    transition: transform 0.3s ease;
+}
+.sidebar-header { padding: 20px; display: flex; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.sidebar-nav { list-style: none; padding: 10px 0; margin: 0; }
+.sidebar-nav li a {
+    display: block; padding: 10px 20px; color: rgba(255,255,255,0.7); text-decoration: none;
+    transition: all 0.2s; border-left: 3px solid transparent; font-size: 14px;
+}
+.sidebar-nav li a:hover, .sidebar-nav li a.active {
+    color: #fff; background: rgba(255,255,255,0.1); border-left-color: var(--primary);
+}
+.sidebar-nav hr { border-color: rgba(255,255,255,0.1); margin: 5px 20px; }
+
+/* Main Content */
+.main-content { margin-left: var(--sidebar-width); min-height: 100vh; }
+.content-wrapper { max-width: 1400px; }
+
+/* Cards */
+.stat-card { border-radius: 12px; border: none; }
+.card { border-radius: 12px; }
+.stat-card .card-body { padding: 24px; }
+
+/* Badge Card */
+.badge-card { transition: transform 0.2s; }
+.badge-card:hover { transform: translateY(-3px); }
+.badge-display { transition: transform 0.2s; }
+.badge-display:hover { transform: translateY(-5px); }
+.grayscale { filter: grayscale(100%); }
+
+/* Rank Card */
+.rank-card { transition: transform 0.2s; }
+.rank-card:hover { transform: translateY(-5px); }
+
+/* Checkin Card */
+.checkin-card { transition: all 0.3s; }
+.checkin-card:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+.mood-btn.active { background: var(--primary) !important; color: #fff !important; }
+
+/* Login */
+.login-page { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.login-icon { animation: bounce 2s infinite; }
+@keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+/* Table */
+.table th { font-weight: 600; font-size: 13px; }
+.table td { font-size: 14px; }
+
+/* Alert */
+.alert { border-radius: 8px; }
+
+/* Badge colors */
+.bg-pink { background-color: #e91e63 !important; color: #fff; }
+
+/* Dark Mode */
+[data-bs-theme="dark"] { background: #121212; }
+[data-bs-theme="dark"] .sidebar { background: #0d0d1a; }
+[data-bs-theme="dark"] .card { background: #1e1e2e; }
+[data-bs-theme="dark"] .table { color: #ddd; }
+[data-bs-theme="dark"] .table-light, [data-bs-theme="dark"] .bg-white, [data-bs-theme="dark"] .card-header { background: #2a2a3e !important; color: #ddd; }
+[data-bs-theme="dark"] .form-control, [data-bs-theme="dark"] .form-select { background: #2a2a3e; border-color: #3a3a4e; color: #ddd; }
+[data-bs-theme="dark"] .alert-secondary { background: #2a2a3e; color: #ddd; }
+
+/* Mobile */
+@media (max-width: 768px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.show { transform: translateX(0); }
+    .main-content { margin-left: 0; }
+}

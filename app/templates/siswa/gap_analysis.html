@@ -1,0 +1,336 @@
+{% extends "base.html" %}
+{% block title %}Gap Analysis - {{ siswa.nama_lengkap }}{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-1"><i class="fas fa-balance-scale me-2 text-warning"></i>Gap Analysis</h4>
+        <p class="text-muted mb-0">
+            {{ siswa.nama_lengkap }} &middot; {{ siswa.kelas.nama_kelas if siswa.kelas else '-' }}
+        </p>
+    </div>
+    <a href="{{ url_for('routes.siswa_detail', id=siswa.id) }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left me-1"></i>Kembali
+    </a>
+</div>
+
+{% if not has_any_data %}
+<!-- Empty state -->
+<div class="card border-0 shadow-sm">
+    <div class="card-body text-center py-5">
+        <div class="display-1 mb-3">📭</div>
+        <h5 class="text-muted">Belum Ada Data Assessment</h5>
+        <p class="text-muted">Silakan isi assessment guru dan/atau assessment orang tua terlebih dahulu.</p>
+        <div class="d-flex justify-content-center gap-2">
+            <a href="{{ url_for('routes.assessment_view', siswa_id=siswa.id) }}" class="btn btn-info">
+                <i class="fas fa-clipboard-check me-1"></i>Assessment Guru
+            </a>
+            <a href="{{ url_for('routes.assessment_ortu_view', siswa_id=siswa.id) }}" class="btn btn-warning">
+                <i class="fas fa-users me-1"></i>Assessment Orang Tua
+            </a>
+        </div>
+    </div>
+</div>
+
+{% else %}
+
+<!-- Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3 col-6">
+        <div class="card border-0 shadow-sm text-center p-3">
+            <div class="display-6 text-success">{{ aligned_count }}</div>
+            <small class="text-muted fw-bold">Sejalan 🟢</small>
+            <small class="text-muted">Gap ≤ 15%</small>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="card border-0 shadow-sm text-center p-3">
+            <div class="display-6 text-warning">{{ moderate_count }}</div>
+            <small class="text-muted fw-bold">Moderat 🟡</small>
+            <small class="text-muted">Gap 15–30%</small>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="card border-0 shadow-sm text-center p-3">
+            <div class="display-6 text-danger">{{ significant_count }}</div>
+            <small class="text-muted fw-bold">Signifikan 🔴</small>
+            <small class="text-muted">Gap &gt; 30%</small>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="card border-0 shadow-sm text-center p-3">
+            <div class="display-6" style="color:var(--bs-primary)">{{ domains|length }}</div>
+            <small class="text-muted fw-bold">Total Domain</small>
+            <small class="text-muted">7 Area Analisis</small>
+        </div>
+    </div>
+</div>
+
+<!-- Chart -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white">
+        <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Perbandingan Skor Guru vs Persepsi Orang Tua</h6>
+    </div>
+    <div class="card-body" style="height:320px;">
+        <canvas id="gapChart"></canvas>
+    </div>
+</div>
+
+<!-- Comparison Table -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white">
+        <h6 class="mb-0"><i class="fas fa-table me-2"></i>Ringkasan Perbandingan</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width:20%">Domain</th>
+                        <th style="width:25%">Skor Guru</th>
+                        <th style="width:25%">Rating Orang Tua</th>
+                        <th style="width:15%" class="text-center">Gap</th>
+                        <th style="width:15%" class="text-center">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in domains %}
+                    <tr>
+                        <td>
+                            <span class="me-2">{{ d.emoji }}</span>
+                            <strong>{{ d.name }}</strong>
+                        </td>
+                        <td>
+                            {% if d.has_guru %}
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="progress flex-grow-1" style="height:22px; background:#e9ecef;">
+                                    <div class="progress-bar bg-info" style="width:{{ d.guru_pct }}%">
+                                        {{ d.guru_pct }}%
+                                    </div>
+                                </div>
+                                <small class="text-muted text-nowrap">{{ d.guru_tercapai }}/{{ d.guru_total }}</small>
+                            </div>
+                            {% else %}
+                            <span class="text-muted fst-italic">Belum ada data</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if d.has_ortu %}
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="progress flex-grow-1" style="height:22px; background:#e9ecef;">
+                                    <div class="progress-bar bg-warning" style="width:{{ d.ortu_pct }}%">
+                                        {{ d.ortu_pct }}%
+                                    </div>
+                                </div>
+                                <small class="text-muted text-nowrap">{{ (d.ortu_pct / 20)|round(1) }}/5</small>
+                            </div>
+                            {% else %}
+                            <span class="text-muted fst-italic">Belum ada data</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center fw-bold">
+                            {% if d.gap is not none %}
+                                {% if d.gap > 0 %}+{% endif %}{{ d.gap }}%
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-{{ d.status_color }}">{{ d.status_text }}</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Detail Per Domain -->
+<div class="row g-3 mb-4">
+    {% for d in domains %}
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">
+                    {{ d.emoji }} <strong>{{ d.name }}</strong>
+                    <span class="badge bg-{{ d.status_color }} ms-2">{{ d.status_text }}</span>
+                </h6>
+                {% if d.gap is not none %}
+                <span class="badge bg-light text-dark border">
+                    Gap: {% if d.gap > 0 %}+{% endif %}{{ d.gap }}%
+                </span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- Guru Side -->
+                    <div class="col-md-6">
+                        <h6 class="text-info"><i class="fas fa-chalkboard-teacher me-1"></i>Observasi Guru</h6>
+                        {% if d.guru_items %}
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered mb-2">
+                                <thead class="table-info">
+                                    <tr><th>Kode</th><th>Item</th><th class="text-center">Status</th></tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in d.guru_items %}
+                                    <tr>
+                                        <td><code>{{ item.kode }}</code></td>
+                                        <td>{{ item.nama }}</td>
+                                        <td class="text-center">
+                                            {% if item.status == '✔' %}
+                                                <span class="text-success fw-bold fs-5">✔</span>
+                                            {% elif item.status == '✘' %}
+                                                <span class="text-danger fw-bold fs-5">✘</span>
+                                            {% else %}
+                                                <span class="text-muted">—</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <small class="text-muted">Skor: {{ d.guru_tercapai }}/{{ d.guru_total }} = <strong>{{ d.guru_pct }}%</strong></small>
+                        {% else %}
+                        <p class="text-muted fst-italic">Tidak ada item assessment</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Orang Tua Side -->
+                    <div class="col-md-6">
+                        <h6 class="text-warning"><i class="fas fa-users me-1"></i>Persepsi Orang Tua</h6>
+                        {% if d.ortu_details %}
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered mb-2">
+                                <thead class="table-warning">
+                                    <tr><th>Aspek</th><th class="text-center">Rating</th><th class="text-center">Visual</th></tr>
+                                </thead>
+                                <tbody>
+                                    {% for detail in d.ortu_details %}
+                                    <tr>
+                                        <td>{{ detail.label }}</td>
+                                        <td class="text-center fw-bold">
+                                            {% if detail.value is not none %}
+                                                {{ detail.value }}<small class="text-muted">/5</small>
+                                            {% else %}
+                                                <span class="text-muted">—</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if detail.value is not none %}
+                                            <div class="progress" style="height:18px; background:#e9ecef;">
+                                                <div class="progress-bar bg-warning" style="width:{{ (detail.value / 5 * 100)|round }}%"></div>
+                                            </div>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <small class="text-muted">
+                            Rata-rata: <strong>
+                            {% if d.ortu_pct is not none %}{{ d.ortu_pct }}%{% else %}—{% endif %}
+                            </strong>
+                        </small>
+                        {% else %}
+                        <p class="text-muted fst-italic">Belum ada data persepsi orang tua</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Insight -->
+                <hr>
+                <div class="alert alert-light border mb-0">
+                    <i class="fas fa-lightbulb text-warning me-1"></i>
+                    <strong>Insight:</strong> {{ d.insight|safe }}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Legend -->
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body py-2">
+        <small class="text-muted">
+            <strong>Keterangan:</strong>
+            <span class="badge bg-success ms-1">Sejalan</span> Gap ≤ 15% &middot;
+            <span class="badge bg-warning ms-1">Moderat</span> Gap 15–30% &middot;
+            <span class="badge bg-danger ms-1">Signifikan</span> Gap &gt; 30%
+            &middot; Gap = Rating Ortu (%) − Skor Guru (%)
+        </small>
+    </div>
+</div>
+
+{% endif %}{# end has_any_data #}
+{% endblock %}
+
+{% block scripts %}
+{% if has_any_data %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const labels = {{ chart_labels | tojson }};
+    const guruData = {{ chart_guru | tojson }};
+    const ortuData = {{ chart_ortu | tojson }};
+
+    const ctx = document.getElementById('gapChart');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Skor Guru (%)',
+                        data: guruData,
+                        backgroundColor: 'rgba(13, 202, 240, 0.7)',
+                        borderColor: 'rgba(13, 202, 240, 1)',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                    },
+                    {
+                        label: 'Rating Orang Tua (%)',
+                        data: ortuData,
+                        backgroundColor: 'rgba(255, 193, 7, 0.7)',
+                        borderColor: 'rgba(255, 193, 7, 1)',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y + '%';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: { callback: function(v) { return v + '%'; } },
+                        title: { display: true, text: 'Persentase (%)' }
+                    },
+                    x: {
+                        title: { display: true, text: 'Domain' }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Pengaturan{% endblock %}
+{% block content %}
+<h4 class="mb-4"><i class="fas fa-cog me-2"></i>Pengaturan</h4>
+<form method="POST" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <!-- Identitas Sekolah -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white"><h6 class="mb-0">🏫 Identitas Sekolah</h6></div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Nama Sekolah</label>
+                    <input type="text" class="form-control" name="nama_sekolah" value="{{ sekolah.nama_sekolah if sekolah else '' }}" placeholder="Nama lengkap sekolah">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Singkatan <small class="text-muted">(untuk sidebar)</small></label>
+                    <input type="text" class="form-control" name="singkatan" value="{{ sekolah.singkatan if sekolah else '' }}" placeholder="Contoh: SDN 1" maxlength="50">
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-bold">Alamat</label>
+                    <textarea class="form-control" name="alamat" rows="2" placeholder="Alamat lengkap sekolah">{{ sekolah.alamat if sekolah else '' }}</textarea>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">No. Telepon</label>
+                    <input type="text" class="form-control" name="no_telepon" value="{{ sekolah.no_telepon if sekolah else '' }}" placeholder="08xxxxxxxxxx">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Email</label>
+                    <input type="email" class="form-control" name="email" value="{{ sekolah.email if sekolah else '' }}" placeholder="sekolah@email.com">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Website</label>
+                    <input type="url" class="form-control" name="website" value="{{ sekolah.website if sekolah else '' }}" placeholder="https://sekolah.id">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Kepala Sekolah</label>
+                    <input type="text" class="form-control" name="kepala_sekolah" value="{{ sekolah.kepala_sekolah if sekolah else '' }}" placeholder="Nama Kepala Sekolah">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">NIP Kepala Sekolah</label>
+                    <input type="text" class="form-control" name="nip_kepala" value="{{ sekolah.nip_kepala if sekolah else '' }}" placeholder="NIP">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Logo Sekolah</label>
+                    <input type="file" class="form-control" name="logo" accept="image/*" onchange="previewLogo(this)">
+                    {% if sekolah and sekolah.logo_path %}
+                    <div class="mt-2">
+                        <img src="{{ url_for('static', filename='uploads/' + sekolah.logo_path) }}" alt="Logo Sekolah" style="max-height:80px; border:1px solid #ddd; border-radius:6px; padding:4px;">
+                    </div>
+                    {% endif %}
+                    <div id="logoPreview" class="mt-2" style="display:none;">
+                        <img id="logoPreviewImg" src="" alt="Preview" style="max-height:80px; border:1px solid #ddd; border-radius:6px; padding:4px;">
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-bold">Visi</label>
+                    <textarea class="form-control" name="visi" rows="3" placeholder="Visi sekolah">{{ sekolah.visi if sekolah else '' }}</textarea>
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-bold">Misi</label>
+                    <textarea class="form-control" name="misi" rows="4" placeholder="Misi sekolah">{{ sekolah.misi if sekolah else '' }}</textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white"><h6 class="mb-0">📅 Tahun Ajaran Aktif</h6></div>
+                <div class="card-body">
+                    {% for t in ta_list %}
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" name="active_ta" value="{{ t.id }}" id="ta{{ t.id }}" {% if t.is_active %}checked{% endif %}>
+                        <label class="form-check-label" for="ta{{ t.id }}">{{ t.nama }} Semester {{ t.semester }}</label>
+                        {% if t.is_active %}<span class="badge bg-success ms-2">Aktif</span>{% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white"><h6 class="mb-0">📚 Kurikulum Aktif</h6></div>
+                <div class="card-body">
+                    {% for k in kur_list %}
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" name="active_kurikulum" value="{{ k.id }}" id="kur{{ k.id }}" {% if k.is_active %}checked{% endif %}>
+                        <label class="form-check-label" for="kur{{ k.id }}">{{ k.nama }}</label>
+                        {% if k.is_active %}<span class="badge bg-success ms-2">Aktif</span>{% endif %}
+                        <br><small class="text-muted">{{ k.deskripsi }}</small>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <button type="submit" class="btn btn-primary mt-3"><i class="fas fa-save me-1"></i>Simpan Pengaturan</button>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function previewLogo(input) {
+    if (input.files && input.files[0]) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('logoPreviewImg').src = e.target.result;
+            document.getElementById('logoPreview').style.display = 'block';
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+</script>
+{% endblock %}

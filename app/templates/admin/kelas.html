@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block title %}Kelas{% endblock %}
+{% block content %}
+<h4 class="mb-4"><i class="fas fa-door-open me-2"></i>Kelola Kelas</h4>
+<div class="row g-3">
+    <div class="col-md-8">
+        <!-- Edit Form (shown when editing) -->
+        {% if editing %}
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-warning text-dark">
+                <h6 class="mb-0"><i class="fas fa-edit me-2"></i>Edit Kelas: {{ editing.nama_kelas }}</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('routes.kelas_edit', id=editing.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="row g-2">
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label">Nama Kelas</label>
+                            <input type="text" class="form-control form-control-sm" name="nama_kelas" value="{{ editing.nama_kelas }}" required>
+                        </div>
+                        <div class="col-md-2 mb-2">
+                            <label class="form-label">Tingkat</label>
+                            <select class="form-select form-select-sm" name="tingkat">
+                                {% for i in range(1,7) %}<option value="{{ i }}" {% if editing.tingkat == i %}selected{% endif %}>{{ i }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <label class="form-label">Wali Kelas</label>
+                            <select class="form-select form-select-sm" name="wali_kelas_id">
+                                <option value="">-- Pilih --</option>
+                                {% for g in guru_list %}<option value="{{ g.id }}" {% if editing.wali_kelas_id == g.id %}selected{% endif %}>{{ g.nama_lengkap }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <label class="form-label">Tahun Ajaran</label>
+                            <select class="form-select form-select-sm" name="tahun_ajaran_id">
+                                {% for t in ta_list %}<option value="{{ t.id }}" {% if editing.tahun_ajaran_id == t.id %}selected{% endif %}>{{ t.nama }} S{{ t.semester }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2 mb-2">
+                            <label class="form-label">Kuota</label>
+                            <input type="number" class="form-control form-control-sm" name="kuota" value="{{ editing.kuota }}">
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2 mt-2">
+                        <button type="submit" class="btn btn-warning btn-sm"><i class="fas fa-save me-1"></i>Simpan Perubahan</button>
+                        <a href="{{ url_for('routes.kelas_list') }}" class="btn btn-secondary btn-sm">Batal</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white"><h6 class="mb-0">Daftar Kelas</h6></div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light"><tr><th>#</th><th>Kelas</th><th>Tingkat</th><th>Wali Kelas</th><th>Siswa</th><th>Kuota</th><th>Tahun Ajaran</th><th>Aksi</th></tr></thead>
+                    <tbody>
+                    {% for k in kelas_list %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td><span class="badge bg-primary fs-6">{{ k.nama_kelas }}</span></td>
+                        <td>{{ k.tingkat }}</td>
+                        <td>{{ k.wali_kelas.nama_lengkap if k.wali_kelas else '-' }}</td>
+                        <td><span class="badge bg-success">{{ k.jumlah_siswa }}</span></td>
+                        <td>{{ k.kuota }}</td>
+                        <td>{{ k.tahun_ajaran.nama if k.tahun_ajaran else '-' }}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('routes.kelas_edit', id=k.id) }}" class="btn btn-outline-primary" title="Edit"><i class="fas fa-edit"></i></a>
+                                {% if k.jumlah_siswa == 0 %}
+                                <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteKelas{{ k.id }}" title="Hapus"><i class="fas fa-trash"></i></button>
+                                {% else %}
+                                <button class="btn btn-outline-secondary" disabled title="Tidak bisa dihapus (masih ada siswa)"><i class="fas fa-lock"></i></button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white"><h6 class="mb-0">{% if editing %}Detail Kelas{% else %}Tambah Kelas{% endif %}</h6></div>
+            <div class="card-body">
+                {% if editing %}
+                <div class="text-muted small">
+                    <p><strong>Nama:</strong> {{ editing.nama_kelas }}</p>
+                    <p><strong>Tingkat:</strong> {{ editing.tingkat }}</p>
+                    <p><strong>Wali:</strong> {{ editing.wali_kelas.nama_lengkap if editing.wali_kelas else '-' }}</p>
+                    <p><strong>Siswa:</strong> {{ editing.jumlah_siswa }} / {{ editing.kuota }}</p>
+                    <p><strong>Tahun Ajaran:</strong> {{ editing.tahun_ajaran.nama if editing.tahun_ajaran else '-' }}</p>
+                </div>
+                <a href="{{ url_for('routes.kelas_list') }}" class="btn btn-secondary btn-sm w-100 mt-2"><i class="fas fa-arrow-left me-1"></i>Kembali</a>
+                {% else %}
+                <form method="POST" action="{{ url_for('routes.kelas_tambah') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-2">
+                        <label class="form-label">Nama Kelas</label>
+                        <input type="text" class="form-control form-control-sm" name="nama_kelas" placeholder="1A" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Tingkat</label>
+                        <select class="form-select form-select-sm" name="tingkat">
+                            {% for i in range(1,7) %}<option value="{{ i }}">{{ i }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Wali Kelas</label>
+                        <select class="form-select form-select-sm" name="wali_kelas_id">
+                            <option value="">-- Pilih --</option>
+                            {% for g in guru_list %}<option value="{{ g.id }}">{{ g.nama_lengkap }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Tahun Ajaran</label>
+                        <select class="form-select form-select-sm" name="tahun_ajaran_id">
+                            {% for t in ta_list %}<option value="{{ t.id }}">{{ t.nama }} S{{ t.semester }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Kuota</label>
+                        <input type="number" class="form-control form-control-sm" name="kuota" value="30">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm w-100"><i class="fas fa-plus me-1"></i>Tambah</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modals -->
+{% for k in kelas_list %}
+{% if k.jumlah_siswa == 0 %}
+<div class="modal fade" id="deleteKelas{{ k.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Konfirmasi Hapus</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Yakin ingin menghapus kelas <strong>{{ k.nama_kelas }}</strong>?</p>
+                <p class="text-muted"><small>Tindakan ini tidak dapat dibatalkan.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <form method="POST" action="{{ url_for('routes.kelas_hapus', id=k.id) }}" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger"><i class="fas fa-trash me-1"></i>Hapus</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+
+{% endblock %}

@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if siswa else 'Tambah' }} Siswa{% endblock %}
+{% block content %}
+<h4 class="mb-4"><i class="fas fa-user-graduate me-2"></i>{{ 'Edit' if siswa else 'Tambah' }} Siswa</h4>
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <form method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">NISN</label>
+                    <input type="text" class="form-control" name="nisn" value="{{ siswa.nisn if siswa else '' }}" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Nama Lengkap</label>
+                    <input type="text" class="form-control" name="nama_lengkap" value="{{ siswa.nama_lengkap if siswa else '' }}" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Nama Panggilan</label>
+                    <input type="text" class="form-control" name="nama_panggilan" value="{{ siswa.nama_panggilan if siswa else '' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Jenis Kelamin</label>
+                    <select class="form-select" name="jenis_kelamin" required>
+                        <option value="L" {% if siswa and siswa.jenis_kelamin=='L' %}selected{% endif %}>Laki-laki</option>
+                        <option value="P" {% if siswa and siswa.jenis_kelamin=='P' %}selected{% endif %}>Perempuan</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Tanggal Lahir</label>
+                    <input type="date" class="form-control" name="tanggal_lahir" value="{{ siswa.tanggal_lahir.isoformat() if siswa and siswa.tanggal_lahir else '' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Tempat Lahir</label>
+                    <input type="text" class="form-control" name="tempat_lahir" value="{{ siswa.tempat_lahir if siswa else '' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Kelas</label>
+                    <select class="form-select" name="kelas_id">
+                        <option value="">-- Pilih --</option>
+                        {% for k in kelas_list %}<option value="{{ k.id }}" {% if siswa and siswa.kelas_id==k.id %}selected{% endif %}>{{ k.nama_kelas }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Alamat</label>
+                    <textarea class="form-control" name="alamat" rows="2">{{ siswa.alamat if siswa else '' }}</textarea>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">No. HP Orang Tua</label>
+                    <input type="text" class="form-control" name="no_hp_ortu" value="{{ siswa.no_hp_ortu if siswa else '' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Nama Orang Tua</label>
+                    <input type="text" class="form-control" name="nama_ortu" value="{{ siswa.nama_ortu if siswa else '' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Foto Profil</label>
+                    <input type="file" class="form-control" name="foto" accept="image/*" onchange="previewImage(this)">
+                    {% if siswa and siswa.foto_profil %}
+                    <img src="{{ url_for('static', filename='uploads/' + siswa.foto_profil) }}" class="mt-2 rounded" style="max-height:100px;">
+                    {% endif %}
+                    <img id="preview" class="mt-2 rounded" style="max-height:150px;display:none;">
+                </div>
+                {% if siswa %}
+                <div class="col-md-3">
+                    <label class="form-label">Status</label>
+                    <select class="form-select" name="status">
+                        {% for s in ['aktif','lulus','pindah','keluar'] %}
+                        <option value="{{ s }}" {% if siswa.status==s %}selected{% endif %}>{{ s|capitalize }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+            </div>
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>Simpan</button>
+                <a href="{{ url_for('routes.siswa_list') }}" class="btn btn-secondary">Batal</a>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+function previewImage(input) {
+    if (input.files && input.files[0]) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('preview').src = e.target.result;
+            document.getElementById('preview').style.display = 'block';
+        }
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+</script>
+{% endblock %}

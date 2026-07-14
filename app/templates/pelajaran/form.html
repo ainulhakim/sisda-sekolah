@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if mp else 'Tambah' }} Mata Pelajaran{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">
+        <i class="fas fa-book me-2"></i>{{ 'Edit' if mp else 'Tambah' }} Mata Pelajaran
+    </h4>
+    <a href="{{ url_for('routes.pelajaran_list') }}" class="btn btn-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i>Kembali
+    </a>
+</div>
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('routes.pelajaran_edit', id=mp.id) if mp else url_for('routes.pelajaran_tambah') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Kode <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="kode" value="{{ mp.kode if mp else '' }}" required maxlength="10" placeholder="Contoh: MTK, BIndo, IPA">
+                        <small class="text-muted">Kode unik untuk mata pelajaran (maks. 10 karakter)</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nama Pelajaran <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="nama" value="{{ mp.nama if mp else '' }}" required maxlength="100" placeholder="Contoh: Matematika">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Deskripsi</label>
+                        <textarea class="form-control" name="deskripsi" rows="3" placeholder="Deskripsi singkat mata pelajaran...">{{ mp.deskripsi if mp and mp.deskripsi else '' }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Tipe</label>
+                        <select class="form-select" name="tipe">
+                            <option value="utama" {{ 'selected' if mp and mp.tipe == 'utama' }}>Utama</option>
+                            <option value="pendamping" {{ 'selected' if mp and mp.tipe == 'pendamping' }}>Pendamping</option>
+                        </select>
+                    </div>
+                    {% if mp %}
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" name="is_active" id="isActive" {{ 'checked' if mp.is_active }}>
+                        <label class="form-check-label" for="isActive">Aktif</label>
+                    </div>
+                    {% endif %}
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>{{ 'Simpan' if mp else 'Tambah' }}
+                        </button>
+                        <a href="{{ url_for('routes.pelajaran_list') }}" class="btn btn-secondary">Batal</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}Detail Siswa{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0"><i class="fas fa-user me-2"></i>{{ siswa.nama_lengkap }}</h4>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('routes.assessment_view', siswa_id=siswa.id) }}" class="btn btn-info">
+            <i class="fas fa-clipboard-check me-1"></i>Assessment
+        </a>
+        <a href="{{ url_for('routes.assessment_ortu_view', siswa_id=siswa.id) }}" class="btn btn-warning">
+            <i class="fas fa-users me-1"></i>Assessment Ortu
+        </a>
+        <a href="{{ url_for('routes.gap_analysis', id=siswa.id) }}" class="btn btn-orange" style="background-color:#fd7e14; border-color:#fd7e14; color:#fff;">
+            <i class="fas fa-balance-scale me-1"></i>Gap Analysis
+        </a>
+        <a href="{{ url_for('routes.siswa_nilai', id=siswa.id) }}" class="btn btn-success">
+            <i class="fas fa-graduation-cap me-1"></i>Lihat Nilai
+        </a>
+        <a href="{{ url_for('routes.kemampuan_dasar', id=siswa.id) }}" class="btn btn-primary">
+            <i class="fas fa-chart-radar me-1"></i>Kemampuan Dasar
+        </a>
+        <a href="{{ url_for('routes.cetak_rapor', id=siswa.id) }}" class="btn btn-success" target="_blank">
+            <i class="fas fa-print me-1"></i>Cetak Rapor
+        </a>
+        {% if current_user.role == 'admin' %}
+        <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteSiswaModal">
+            <i class="fas fa-trash me-1"></i>Hapus
+        </button>
+        {% endif %}
+        <a href="{{ url_for('routes.siswa_list') }}" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i>Kembali</a>
+    </div>
+</div>
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm text-center p-4">
+            {% if siswa.foto_profil %}
+                <img src="{{ url_for('static', filename='uploads/' + siswa.foto_profil) }}" class="rounded-circle mx-auto mb-3" width="120" height="120" style="object-fit:cover;">
+            {% else %}
+                <div class="display-1 mb-3">🎓</div>
+            {% endif %}
+            <h5>{{ siswa.nama_lengkap }}</h5>
+            <p class="text-muted">{{ siswa.kelas.nama_kelas if siswa.kelas else '-' }}</p>
+            <hr>
+            <div class="text-start">
+                <p><small><strong>NISN:</strong> {{ siswa.nisn }}</small></p>
+                <p><small><strong>JK:</strong> {{ 'Laki-laki' if siswa.jenis_kelamin=='L' else 'Perempuan' }}</small></p>
+                <p><small><strong>Lahir:</strong> {{ siswa.tempat_lahir }}, {{ siswa.tanggal_lahir.strftime('%d %m %Y') if siswa.tanggal_lahir else '-' }}</small></p>
+                <p><small><strong>Orang Tua:</strong> {{ siswa.nama_ortu or '-' }}</small></p>
+                <p><small><strong>HP Orang Tua:</strong> {{ siswa.no_hp_ortu or '-' }}</small></p>
+                <p><small><strong>Streak:</strong> {{ siswa.streak_hadir }} hari 🔥</small></p>
+                <p><small><strong>Kehadiran:</strong> {{ siswa.persentase_kehadiran }}%</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        {% set nilai_list = siswa.nilai_pelajaran_list %}
+        {% if nilai_list %}
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">📊 Ringkasan Nilai</h6>
+                <a href="{{ url_for('routes.siswa_nilai', id=siswa.id) }}" class="btn btn-sm btn-outline-success">Lihat Semua</a>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light"><tr><th>Mata Pelajaran</th><th class="text-center">Rata-rata</th><th>Status</th></tr></thead>
+                    <tbody>
+                        {% for n in nilai_list %}
+                        <tr>
+                            <td><strong>{{ n.mata_pelajaran.nama }}</strong> <small class="text-muted">({{ n.mata_pelajaran.kode }})</small></td>
+                            <td class="text-center fw-bold">
+                                {% if n.rata_rata is not none %}
+                                    <span class="{% if n.rata_rata >= 80 %}text-success{% elif n.rata_rata >= 60 %}text-warning{% else %}text-danger{% endif %}">
+                                        {{ n.rata_rata }}
+                                    </span>
+                                {% else %}-{% endif %}
+                            </td>
+                            <td>
+                                {% if n.rata_rata is not none %}
+                                    {% if n.rata_rata >= 80 %}<span class="badge bg-success">Baik</span>
+                                    {% elif n.rata_rata >= 60 %}<span class="badge bg-warning">Cukup</span>
+                                    {% else %}<span class="badge bg-danger">Perlu Perbaikan</span>{% endif %}
+                                {% else %}<span class="badge bg-secondary">Belum Ada</span>{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-white"><h6 class="mb-0">🏆 Badge ({{ badges|length }})</h6></div>
+            <div class="card-body">
+                <div class="row g-2">
+                    {% for sb in badges %}
+                    <div class="col-4 col-md-3">
+                        <div class="badge-card text-center p-2 rounded" style="background: {{ sb.badge.warna }}22; border: 2px solid {{ sb.badge.warna }}">
+                            <div class="fs-3">{{ sb.badge.icon_emoji }}</div>
+                            <small>{{ sb.badge.nama }}</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% if not badges %}<p class="text-muted">Belum ada badge</p>{% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white"><h6 class="mb-0">📋 Riwayat Absensi</h6></div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light"><tr><th>Tanggal</th><th>Status</th><th>Mood</th><th>Jam Masuk</th></tr></thead>
+                    <tbody>
+                    {% for a in absensi %}
+                    <tr>
+                        <td>{{ a.tanggal.strftime('%d/%m/%Y') }}</td>
+                        <td><span class="badge {% if a.status=='hadir' %}bg-success{% elif a.status=='alpa' %}bg-danger{% else %}bg-secondary{% endif %}">{{ a.status }}</span></td>
+                        <td>{% if a.mood=='senang' %}😊{% elif a.mood=='biasa' %}😐{% elif a.mood=='sedih' %}😢{% elif a.mood=='ngantuk' %}😴{% elif a.mood=='sakit' %}🤒{% endif %}</td>
+                        <td>{{ a.check_in_time.strftime('%H:%M') if a.check_in_time else '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteSiswaModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Konfirmasi Hapus Siswa</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Yakin ingin menghapus siswa <strong>{{ siswa.nama_lengkap }}</strong>?</p>
+                <p class="text-muted"><small>Siswa akan ditandai sebagai "keluar" dan tidak akan muncul di daftar siswa aktif.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <form method="POST" action="{{ url_for('routes.siswa_hapus', id=siswa.id) }}" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger"><i class="fas fa-trash me-1"></i>Hapus Siswa</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

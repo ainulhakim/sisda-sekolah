@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Dashboard Guru{% endblock %}
+{% block content %}
+<h4 class="mb-4"><i class="fas fa-chalkboard-teacher me-2"></i>Dashboard Guru</h4>
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card stat-card bg-info text-white">
+            <div class="card-body"><h2 class="mb-0">{{ kelas_list|length }}</h2><small>Kelas Diampu</small></div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card stat-card bg-primary text-white">
+            <div class="card-body"><h2 class="mb-0">{{ today.strftime('%d %B') }}</h2><small>Hari Ini</small></div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card stat-card bg-warning text-white">
+            <div class="card-body"><h2 class="mb-0">{{ sad_students|length }}</h2><small>Siswa Perlu Perhatian</small></div>
+        </div>
+    </div>
+</div>
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white"><h6 class="mb-0"><i class="fas fa-clipboard-check me-2"></i>Absensi Hari Ini</h6></div>
+            <div class="card-body">
+                {% for item in absensi_hari_ini %}
+                <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-light rounded">
+                    <span><strong>{{ item.kelas.nama_kelas }}</strong></span>
+                    <span class="badge bg-primary">{{ item.count }}/{{ item.total }}</span>
+                </div>
+                {% endfor %}
+                {% if not absensi_hari_ini %}
+                <p class="text-muted text-center py-3">Belum ada kelas yang diampu</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white"><h6 class="mb-0"><i class="fas fa-heart me-2"></i>Siswa Perlu Perhatian</h6></div>
+            <div class="card-body">
+                {% for s in sad_students %}
+                <div class="d-flex align-items-center mb-2 p-2 bg-light rounded">
+                    <span class="me-2">😢</span>
+                    <span>{{ s.nama_lengkap }}</span>
+                </div>
+                {% endfor %}
+                {% if not sad_students %}
+                <p class="text-muted text-center py-3">Semua siswa dalam kondisi baik! 🎉</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

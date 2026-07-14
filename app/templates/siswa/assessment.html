@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Assessment - {{ siswa.nama_lengkap }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4><i class="fas fa-clipboard-check me-2"></i>Assessment: {{ siswa.nama_lengkap }}</h4>
+    <a href="{{ url_for('routes.siswa_detail', id=siswa.id) }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i>Kembali
+    </a>
+</div>
+
+<form method="POST" action="{{ url_for('routes.assessment_save', siswa_id=siswa.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    
+    <!-- Section Tabs -->
+    <ul class="nav nav-tabs mb-3" role="tablist">
+        {% for section in sections %}
+        <li class="nav-item">
+            <a class="nav-link {% if loop.first %}active{% endif %}" data-bs-toggle="tab" href="#section{{ section.kode }}">
+                {{ section.kode }}. {{ section.nama }}
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+    
+    <!-- Tab Content -->
+    <div class="tab-content">
+        {% for section in sections %}
+        <div class="tab-pane fade {% if loop.first %}show active{% endif %}" id="section{{ section.kode }}">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    {% for item in section.items %}
+                    <div class="d-flex align-items-start border-bottom py-3">
+                        <div class="me-3">
+                            <span class="badge bg-secondary">{{ item.kode }}</span>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">{{ item.nama }}</h6>
+                            <small class="text-muted">{{ item.panduan }}</small>
+                            {% if item.alat_bantu %}
+                            <br><small class="text-info"><i class="fas fa-tools me-1"></i>{{ item.alat_bantu }}</small>
+                            {% endif %}
+                        </div>
+                        <div class="d-flex gap-2 align-items-center">
+                            <div class="btn-group" role="group">
+                                <input type="radio" class="btn-check" name="item_{{ item.id }}" id="item_{{ item.id }}_yes" value="✔" {% if results.get(item.id) and results[item.id].nilai == '✔' %}checked{% endif %}>
+                                <label class="btn btn-outline-success btn-sm" for="item_{{ item.id }}_yes">✔ Ya</label>
+                                
+                                <input type="radio" class="btn-check" name="item_{{ item.id }}" id="item_{{ item.id }}_no" value="✘" {% if results.get(item.id) and results[item.id].nilai == '✘' %}checked{% endif %}>
+                                <label class="btn btn-outline-danger btn-sm" for="item_{{ item.id }}_no">✘ Tidak</label>
+                                
+                                <input type="radio" class="btn-check" name="item_{{ item.id }}" id="item_{{ item.id }}_skip" value="" {% if not results.get(item.id) or not results[item.id].nilai %}checked{% endif %}>
+                                <label class="btn btn-outline-secondary btn-sm" for="item_{{ item.id }}_skip">—</label>
+                            </div>
+                            <input type="text" class="form-control form-control-sm" name="catatan_{{ item.id }}" placeholder="Catatan..." style="width:150px;" value="{{ results.get(item.id).catatan if results.get(item.id) else '' }}">
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="mt-4 d-flex gap-2">
+        <button type="submit" class="btn btn-primary btn-lg"><i class="fas fa-save me-2"></i>Simpan Semua Assessment</button>
+        <a href="{{ url_for('routes.siswa_detail', id=siswa.id) }}" class="btn btn-secondary btn-lg">Batal</a>
+    </div>
+</form>
+{% endblock %}

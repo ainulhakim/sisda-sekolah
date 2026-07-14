@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Dashboard Admin{% endblock %}
+{% block content %}
+<h4 class="mb-4"><i class="fas fa-home me-2"></i>Dashboard Admin</h4>
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card stat-card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div><h2 class="mb-0">{{ total_siswa }}</h2><small>Total Siswa Aktif</small></div>
+                    <i class="fas fa-user-graduate fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card stat-card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div><h2 class="mb-0">{{ total_guru }}</h2><small>Total Guru</small></div>
+                    <i class="fas fa-chalkboard-teacher fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card stat-card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div><h2 class="mb-0">{{ total_kelas }}</h2><small>Total Kelas</small></div>
+                    <i class="fas fa-door-open fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card stat-card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div><h2 class="mb-0">{{ total_prestasi }}</h2><small>Total Prestasi</small></div>
+                    <i class="fas fa-trophy fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card stat-card bg-danger text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div><h2 class="mb-0">{{ prestasi_tahun }}</h2><small>Prestasi Tahun Ini</small></div>
+                    <i class="fas fa-medal fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white"><h6 class="mb-0"><i class="fas fa-star me-2"></i>Top Performers</h6></div>
+            <div class="card-body">
+                {% if top_performers %}
+                <ul class="list-unstyled mb-0">
+                    {% for nama, total in top_performers %}
+                    <li class="d-flex justify-content-between align-items-center mb-1">
+                        <span>{{ nama }}</span>
+                        <span class="badge bg-warning text-dark">{{ total }} juara</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted small mb-0">Belum ada data juara</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row g-3">
+    <div class="col-md-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white"><h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Absensi Mingguan</h6></div>
+            <div class="card-body"><canvas id="absensiChart" height="300"></canvas></div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white"><h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Info Hari Ini</h6></div>
+            <div class="card-body">
+                <p class="mb-1"><strong>Tanggal:</strong> {{ today.strftime('%d %B %Y') }}</p>
+                <p class="mb-1"><strong>Hari:</strong> {{ ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'][today.weekday()] }}</p>
+                <p class="mb-0"><strong>Selamat datang di {{ sekolah.nama_sekolah if sekolah else "SiSD" }}!</strong></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const chartData = {{ chart_data | tojson }};
+const labels = Object.keys(chartData).sort();
+const hadir = labels.map(d => chartData[d].hadir || 0);
+const telat = labels.map(d => chartData[d].telat || 0);
+const izin = labels.map(d => chartData[d].izin || 0);
+const sakit = labels.map(d => chartData[d].sakit || 0);
+const alpa = labels.map(d => chartData[d].alpa || 0);
+new Chart(document.getElementById('absensiChart'), {
+    type: 'bar',
+    data: {
+        labels: labels,
+        datasets: [
+            { label: 'Hadir', data: hadir, backgroundColor: '#27AE60' },
+            { label: 'Telat', data: telat, backgroundColor: '#F39C12' },
+            { label: 'Izin', data: izin, backgroundColor: '#3498DB' },
+            { label: 'Sakit', data: sakit, backgroundColor: '#9B59B6' },
+            { label: 'Alpa', data: alpa, backgroundColor: '#E74C3C' }
+        ]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } } }
+});
+</script>
+{% endblock %}
