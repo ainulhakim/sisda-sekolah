@@ -9,3 +9,4 @@ static/uploads/
 seed_*.py
 *.pyc
 .DS_Store
+app/static/uploads/
