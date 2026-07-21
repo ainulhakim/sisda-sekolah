@@ -53,6 +53,7 @@
                     <td><span class="badge {% if s.status=='aktif' %}bg-success{% else %}bg-secondary{% endif %}">{{ s.status }}</span></td>
                     <td>
                         <a href="{{ url_for('routes.siswa_detail', id=s.id) }}" class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i></a>
+                        <a href="{{ url_for('routes.siswa_qr_card', id=s.id) }}" class="btn btn-sm btn-outline-info" title="QR Card"><i class="fas fa-qrcode"></i></a>
                         {% if current_user.role in ('admin','guru') %}
                         <a href="{{ url_for('routes.siswa_edit', id=s.id) }}" class="btn btn-sm btn-outline-warning"><i class="fas fa-edit"></i></a>
                         {% endif %}

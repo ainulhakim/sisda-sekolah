@@ -5,7 +5,7 @@ routes_bp = Blueprint('routes', __name__)
 
 # Import all route modules BEFORE registering
 from app.routes import dashboard, siswa, absensi, admin, assessment, assessment_ortu, pelajaran, kemampuan_dasar, rapor
-from app.routes import gap_analysis, lomba
+from app.routes import gap_analysis, lomba, qrcode_attendance
 
 def register_blueprints(app):
     app.register_blueprint(auth_bp, url_prefix='/auth')

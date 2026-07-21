@@ -199,6 +199,44 @@ def absensi_badges():
     else:
         earned_ids = []
         earned_map = {}
-    
+
     return render_template('absensi/badges.html', all_badges=all_badges,
                           earned_ids=earned_ids, earned_map=earned_map)
+
+@routes_bp.route('/absensi/scan')
+@login_required
+def absensi_scan():
+    if current_user.role not in ('admin', 'guru'):
+        flash('Akses ditolak!', 'danger')
+        return redirect(url_for('routes.dashboard'))
+    today_date = date.today()
+    scan_count = Absensi.query.filter(
+        Absensi.tanggal == today_date,
+        Absensi.check_in_method.in_(['qr', 'qrcode'])
+    ).count()
+    return render_template('absensi/scan.html', today=today_date, scan_count=scan_count)
+
+
+@routes_bp.route('/absensi/hari-ini')
+@login_required
+def absensi_hari_ini():
+    """Today's attendance list with mood editing."""
+    if current_user.role not in ('admin', 'guru'):
+        flash('Akses ditolak!', 'danger')
+        return redirect(url_for('routes.dashboard'))
+    
+    today_date = date.today()
+    records = db.session.query(Absensi, Siswa).join(
+        Siswa, Absensi.siswa_id == Siswa.id
+    ).filter(
+        Absensi.tanggal == today_date
+    ).order_by(Absensi.check_in_time.asc()).all()
+    
+    # Flatten for template
+    attendance_records = []
+    for absen, siswa in records:
+        absen.siswa = siswa
+        absen.kelas = siswa.kelas if siswa.kelas_id else None
+        attendance_records.append(absen)
+    
+    return render_template('absensi/hari_ini.html', records=attendance_records)

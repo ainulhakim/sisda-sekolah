@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}QR Card - {{ siswa.nama_panggilan or siswa.nama_lengkap }}{% endblock %}
+{% block content %}
+<style>
+    .qr-card-preview {
+        max-width: 400px;
+        margin: 0 auto;
+    }
+    .qr-card-print {
+        border: 3px solid #1a1a2e;
+        border-radius: 16px;
+        overflow: hidden;
+        background: white;
+    }
+    .qr-card-print .card-header-bg {
+        background: linear-gradient(135deg, #4A90D9 0%, #764ba2 100%);
+        color: white;
+        padding: 16px;
+        text-align: center;
+    }
+    .qr-card-print .card-body-area {
+        padding: 24px;
+        text-align: center;
+    }
+    .qr-card-print .qr-image {
+        width: 200px;
+        height: 200px;
+        margin: 0 auto 16px;
+        border: 2px solid #eee;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: white;
+    }
+    .qr-card-print .qr-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        border-radius: 10px;
+    }
+    .qr-card-print .student-name {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #1a1a2e;
+        margin-bottom: 4px;
+    }
+    .qr-card-print .student-nickname {
+        font-size: 1rem;
+        color: #666;
+        margin-bottom: 8px;
+    }
+    .qr-card-print .student-id {
+        font-size: 0.85rem;
+        color: #999;
+        font-family: monospace;
+        letter-spacing: 1px;
+    }
+    .qr-card-print .school-name {
+        padding: 10px;
+        background: #f8f9fa;
+        border-top: 1px solid #eee;
+        font-size: 0.8rem;
+        color: #666;
+        text-align: center;
+    }
+
+    @media print {
+        .no-print { display: none !important; }
+        .main-content { margin-left: 0 !important; }
+        .sidebar { display: none !important; }
+        .navbar { display: none !important; }
+        .content-wrapper { padding: 0 !important; max-width: 100% !important; }
+        body { background: white !important; }
+        .qr-card-preview { max-width: 100% !important; }
+    }
+</style>
+
+<div class="no-print mb-3">
+    <a href="{{ url_for('routes.siswa_list') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i>Kembali ke Data Siswa
+    </a>
+</div>
+
+<div class="qr-card-preview">
+    <div class="qr-card-print" id="qr-card">
+        <!-- Header -->
+        <div class="card-header-bg">
+            <h5 class="mb-1"><i class="fas fa-school me-2"></i>{{ sekolah.nama if sekolah else 'SiSD' }}</h5>
+            <small>Kartu QR Absensi Siswa</small>
+        </div>
+
+        <!-- QR Code -->
+        <div class="card-body-area">
+            <div class="qr-image mb-3">
+                <img src="{{ url_for('routes.qr_code_image', siswa_id=siswa.id) }}" alt="QR Code {{ siswa.nama_lengkap }}">
+            </div>
+
+            <div class="student-name">{{ siswa.nama_lengkap }}</div>
+            {% if siswa.nama_panggilan and siswa.nama_panggilan != siswa.nama_lengkap %}
+            <div class="student-nickname">"{{ siswa.nama_panggilan }}"</div>
+            {% endif %}
+            <div class="student-id">NISN: {{ siswa.nisn or '-' }}</div>
+            {% if siswa.kelas %}
+            <div class="mt-2">
+                <span class="badge bg-primary">{{ siswa.kelas.nama_kelas }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Footer -->
+        <div class="school-name">
+            <i class="fas fa-qrcode me-1"></i>
+            Scan QR ini untuk absensi harian
+        </div>
+    </div>
+
+    <!-- Print & Download Buttons -->
+    <div class="text-center mt-4 no-print">
+        <button class="btn btn-primary btn-lg" onclick="window.print()">
+            <i class="fas fa-print me-2"></i>Cetak Kartu QR
+        </button>
+        <a href="{{ url_for('routes.kartu_qr_pdf', siswa_id=siswa.id) }}" class="btn btn-success btn-lg ms-2" target="_blank">
+            <i class="fas fa-file-pdf me-2"></i>Download PDF
+        </a>
+        <a href="{{ url_for('routes.qr_code_image', siswa_id=siswa.id) }}" class="btn btn-outline-secondary btn-lg ms-2" download>
+            <i class="fas fa-download me-2"></i>Download QR
+        </a>
+    </div>
+</div>
+{% endblock %}

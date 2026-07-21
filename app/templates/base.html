@@ -22,7 +22,9 @@
             {% if current_user.role == 'admin' %}
             <li><a href="{{ url_for('routes.dashboard') }}" class="{% if request.endpoint == 'routes.dashboard' %}active{% endif %}"><i class="fas fa-home me-2"></i>Dashboard</a></li>
             <li><a href="{{ url_for('routes.siswa_list') }}" class="{% if 'siswa' in request.endpoint %}active{% endif %}"><i class="fas fa-user-graduate me-2"></i>Data Siswa</a></li>
-            <li><a href="{{ url_for('routes.absensi_checkin') }}" class="{% if 'absensi' in request.endpoint and 'rekap' not in request.endpoint and 'leaderboard' not in request.endpoint and 'badges' not in request.endpoint %}active{% endif %}"><i class="fas fa-clipboard-check me-2"></i>Absensi</a></li>
+            <li><a href="{{ url_for('routes.absensi_checkin') }}" class="{% if 'absensi' in request.endpoint and 'rekap' not in request.endpoint and 'leaderboard' not in request.endpoint and 'badges' not in request.endpoint and 'scan' not in request.endpoint %}active{% endif %}"><i class="fas fa-clipboard-check me-2"></i>Absensi</a></li>
+            <li><a href="{{ url_for('routes.absensi_scan') }}" class="{% if 'scan' in request.endpoint %}active{% endif %}"><i class="fas fa-qrcode me-2"></i>📱 Scan QR</a></li>
+            <li><a href="{{ url_for('routes.absensi_hari_ini') }}" class="{% if 'hari_ini' in request.endpoint %}active{% endif %}"><i class="fas fa-calendar-day me-2"></i>📋 Hari Ini</a></li>
             <li><a href="{{ url_for('routes.absensi_leaderboard') }}" class="{% if 'leaderboard' in request.endpoint %}active{% endif %}"><i class="fas fa-trophy me-2"></i>Leaderboard</a></li>
             <li><a href="{{ url_for('routes.absensi_badges') }}" class="{% if 'badges' in request.endpoint %}active{% endif %}"><i class="fas fa-medal me-2"></i>Badges</a></li>
             <li><a href="{{ url_for('routes.lomba_list') }}" class="{% if 'lomba' in request.endpoint or 'prestasi' in request.endpoint %}active{% endif %}"><i class="fas fa-trophy me-2"></i>Lomba & Prestasi</a></li>
@@ -34,7 +36,9 @@
             {% elif current_user.role == 'guru' %}
             <li><a href="{{ url_for('routes.dashboard') }}" class="{% if request.endpoint == 'routes.dashboard' %}active{% endif %}"><i class="fas fa-home me-2"></i>Dashboard</a></li>
             <li><a href="{{ url_for('routes.siswa_list') }}" class="{% if 'siswa' in request.endpoint %}active{% endif %}"><i class="fas fa-user-graduate me-2"></i>Data Siswa</a></li>
-            <li><a href="{{ url_for('routes.absensi_checkin') }}" class="{% if 'absensi' in request.endpoint and 'rekap' not in request.endpoint and 'leaderboard' not in request.endpoint %}active{% endif %}"><i class="fas fa-clipboard-check me-2"></i>Absensi</a></li>
+            <li><a href="{{ url_for('routes.absensi_checkin') }}" class="{% if 'absensi' in request.endpoint and 'rekap' not in request.endpoint and 'leaderboard' not in request.endpoint and 'scan' not in request.endpoint %}active{% endif %}"><i class="fas fa-clipboard-check me-2"></i>Absensi</a></li>
+            <li><a href="{{ url_for('routes.absensi_scan') }}" class="{% if 'scan' in request.endpoint %}active{% endif %}"><i class="fas fa-qrcode me-2"></i>📱 Scan QR</a></li>
+            <li><a href="{{ url_for('routes.absensi_hari_ini') }}" class="{% if 'hari_ini' in request.endpoint %}active{% endif %}"><i class="fas fa-calendar-day me-2"></i>📋 Hari Ini</a></li>
             <li><a href="{{ url_for('routes.absensi_leaderboard') }}" class="{% if 'leaderboard' in request.endpoint %}active{% endif %}"><i class="fas fa-trophy me-2"></i>Leaderboard</a></li>
             <li><a href="{{ url_for('routes.absensi_rekap') }}" class="{% if 'rekap' in request.endpoint %}active{% endif %}"><i class="fas fa-chart-bar me-2"></i>Rekap</a></li>
             <li><a href="{{ url_for('routes.pelajaran_list') }}" class="{% if 'pelajaran' in request.endpoint %}active{% endif %}"><i class="fas fa-book me-2"></i>Input Nilai</a></li>

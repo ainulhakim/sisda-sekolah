@@ -1,0 +1,419 @@
+{% extends "base.html" %}
+{% block title %}Scan QR Absensi{% endblock %}
+{% block content %}
+<style>
+    #qr-reader {
+        border: 3px solid var(--primary);
+        border-radius: 16px;
+        overflow: hidden;
+        max-width: 500px;
+        margin: 0 auto;
+    }
+    #qr-reader video {
+        border-radius: 13px;
+    }
+    .scan-result {
+        transition: all 0.3s ease;
+        min-height: 80px;
+    }
+    .scan-result.show {
+        animation: fadeInUp 0.4s ease;
+    }
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(15px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .scanner-overlay {
+        position: relative;
+    }
+    .scanner-overlay::before {
+        content: '';
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        width: 250px; height: 250px;
+        border: 2px dashed rgba(74, 144, 217, 0.5);
+        border-radius: 16px;
+        pointer-events: none;
+        z-index: 10;
+    }
+    .pulse-ring {
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(74, 144, 217, 0.4); }
+        70% { box-shadow: 0 0 0 15px rgba(74, 144, 217, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(74, 144, 217, 0); }
+    }
+    .scan-count-badge {
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+    #qr-reader__scan_region {
+        border-radius: 13px !important;
+    }
+    #qr-reader__dashboard {
+        display: none !important;
+    }
+    #qr-reader img {
+        display: none !important;
+    }
+</style>
+
+<div class="row g-4">
+    <!-- Left: Scanner -->
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-qrcode me-2"></i>QR Scanner</h5>
+                <span class="badge bg-primary" id="scanner-status">Menunggu Kamera...</span>
+            </div>
+            <div class="card-body text-center">
+                <div class="scanner-overlay mb-3">
+                    <div id="qr-reader" class="pulse-ring"></div>
+                </div>
+                <div id="scanner-controls">
+                    <button class="btn btn-primary btn-lg" id="btn-start" onclick="startScanner()">
+                        <i class="fas fa-camera me-2"></i>Mulai Scanner
+                    </button>
+                    <button class="btn btn-danger btn-lg d-none" id="btn-stop" onclick="stopScanner()">
+                        <i class="fas fa-stop me-2"></i>Stop Scanner
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Info & Results -->
+    <div class="col-lg-5">
+        <!-- DateTime & Stats -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <small class="text-muted d-block">Tanggal Hari Ini</small>
+                        <strong id="current-date">{{ today.strftime('%d %B %Y') }}</strong>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted d-block">Waktu Sekarang</small>
+                        <strong id="current-time"></strong>
+                    </div>
+                </div>
+                <hr>
+                <div class="text-center">
+                    <small class="text-muted d-block mb-1">Total Scan Hari Ini</small>
+                    <span class="scan-count-badge text-primary" id="scan-count">{{ scan_count }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scan Result -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Hasil Scan Terakhir</h6>
+            </div>
+            <div class="card-body">
+                <div class="scan-result text-center" id="scan-result">
+                    <div class="text-muted py-3">
+                        <i class="fas fa-qrcode fa-3x mb-3 d-block opacity-25"></i>
+                        <p>Arahkan kamera ke QR Code siswa</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Scans -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="fas fa-history me-2"></i>Scan Terakhir</h6>
+            </div>
+            <div class="card-body p-0">
+                <div id="scan-history" class="list-group list-group-flush">
+                    <div class="list-group-item text-center text-muted py-3">
+                        <small>Belum ada scan hari ini</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success beep audio -->
+<audio id="beep-success" preload="auto">
+    <source src="data:audio/wav;base64,UklGRl4FAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YToFAAD///8AAP8AAP///wD///8AAP///wD///8AAP///wD///8AAP///wD///8AAHd3d/93d3f/d3d3/3d3d/93d3f/d3d3/3d3d/93d3f/d3d3/3d3d/8=" type="audio/wav">
+</audio>
+
+<!-- Success Popup Modal -->
+<div class="modal fade" id="successModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
+            <div class="modal-body text-center py-5" style="background: linear-gradient(135deg, #27AE60, #2ECC71);">
+                <div class="mb-3">
+                    <span style="font-size: 5rem;">✅</span>
+                </div>
+                <h3 class="text-white fw-bold mb-2" id="popup-nama">Nama Siswa</h3>
+                <p class="text-white-50 mb-3" style="font-size: 1.1rem;">Berhasil Absen Hari Ini</p>
+                <div class="bg-white bg-opacity-25 rounded-pill d-inline-block px-4 py-2">
+                    <span class="text-white fw-bold" style="font-size: 1.3rem;">
+                        🕐 <span id="popup-jam">00:00:00</span>
+                    </span>
+                </div>
+                <div class="mt-4">
+                    <div class="progress" style="height: 6px; background: rgba(255,255,255,0.3);">
+                        <div class="progress-bar bg-white" id="popup-progress" style="width: 100%; transition: width 3s linear;"></div>
+                    </div>
+                    <small class="text-white-50 mt-2 d-block">Menutup otomatis...</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+let html5QrCode = null;
+let scanning = false;
+let scanCount = {{ scan_count }};
+let scanHistory = [];
+
+// Clock
+function updateClock() {
+    const now = new Date();
+    document.getElementById('current-time').textContent = now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+function startScanner() {
+    if (scanning) return;
+    
+    document.getElementById('btn-start').classList.add('d-none');
+    document.getElementById('btn-stop').classList.remove('d-none');
+    document.getElementById('scanner-status').textContent = 'Aktif - Arahkan ke QR';
+    document.getElementById('scanner-status').className = 'badge bg-success';
+    
+    html5QrCode = new Html5Qrcode("qr-reader");
+    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+    
+    html5QrCode.start(
+        { facingMode: "environment" },
+        config,
+        onScanSuccess,
+        onScanFailure
+    ).then(() => {
+        scanning = true;
+    }).catch(err => {
+        showResult('error', 'Gagal mengakses kamera', 'Pastikan izin kamera diberikan');
+        document.getElementById('btn-start').classList.remove('d-none');
+        document.getElementById('btn-stop').classList.add('d-none');
+        document.getElementById('scanner-status').textContent = 'Kamera Tidak Tersedia';
+        document.getElementById('scanner-status').className = 'badge bg-danger';
+    });
+}
+
+function stopScanner() {
+    if (html5QrCode && scanning) {
+        html5QrCode.stop().then(() => {
+            scanning = false;
+            document.getElementById('btn-start').classList.remove('d-none');
+            document.getElementById('btn-stop').classList.add('d-none');
+            document.getElementById('scanner-status').textContent = 'Dihentikan';
+            document.getElementById('scanner-status').className = 'badge bg-secondary';
+        });
+    }
+}
+
+let lastScanTime = 0;
+const SCAN_COOLDOWN = 3000;
+
+function onScanSuccess(decodedText, decodedResult) {
+    const now = Date.now();
+    if (now - lastScanTime < SCAN_COOLDOWN) return;
+    lastScanTime = now;
+    
+    // Play beep
+    try {
+        const beep = document.getElementById('beep-success');
+        beep.currentTime = 0;
+        beep.play().catch(() => {});
+    } catch(e) {}
+    
+    // Show processing state
+    showResult('processing', 'Memproses...', decodedText);
+    
+    // Call API
+    fetch('/api/absen/qr', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ qr_data: decodedText })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            // Show popup modal
+            showSuccessPopup(data.nama_lengkap || data.siswa_name, data.check_in_time || '');
+            scanCount++;
+            document.getElementById('scan-count').textContent = scanCount;
+            addToHistory(data.siswa_name || decodedText, 'success');
+        } else {
+            showResult('error', data.message || 'Gagal memproses QR', decodedText);
+            addToHistory(data.siswa_name || decodedText, 'error');
+        }
+    })
+    .catch(err => {
+        showResult('error', 'Gagal menghubungi server', err.message);
+        addToHistory(decodedText, 'error');
+    });
+}
+
+function onScanFailure(error) {
+    // Silently ignore - normal during scanning
+}
+
+function showResult(type, message, detail) {
+    const el = document.getElementById('scan-result');
+    let html = '';
+    
+    if (type === 'success') {
+        html = `
+            <div class="show">
+                <span class="fs-1">✅</span>
+                <h5 class="text-success mt-2">${message}</h5>
+                <p class="text-muted mb-0">${detail}</p>
+            </div>`;
+        el.className = 'scan-result show';
+        el.innerHTML = html;
+        // Flash green
+        el.parentElement.parentElement.style.borderColor = '#27AE60';
+        setTimeout(() => { el.parentElement.parentElement.style.borderColor = ''; }, 2000);
+    } else if (type === 'error') {
+        html = `
+            <div class="show">
+                <span class="fs-1">❌</span>
+                <h5 class="text-danger mt-2">${message}</h5>
+                <p class="text-muted mb-0">${detail}</p>
+            </div>`;
+        el.className = 'scan-result show';
+        el.innerHTML = html;
+        // Flash red
+        el.parentElement.parentElement.style.borderColor = '#E74C3C';
+        setTimeout(() => { el.parentElement.parentElement.style.borderColor = ''; }, 2000);
+    } else {
+        html = `
+            <div class="show">
+                <div class="spinner-border text-primary mb-2" role="status"></div>
+                <h5>${message}</h5>
+                <p class="text-muted mb-0">${detail}</p>
+            </div>`;
+        el.className = 'scan-result show';
+        el.innerHTML = html;
+    }
+}
+
+function addToHistory(name, type) {
+    const el = document.getElementById('scan-history');
+    const now = new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+    const icon = type === 'success' ? '✅' : '❌';
+    const badgeClass = type === 'success' ? 'bg-success' : 'bg-danger';
+    
+    // Remove placeholder if exists
+    if (scanHistory.length === 0) {
+        el.innerHTML = '';
+    }
+    
+    const item = document.createElement('div');
+    item.className = 'list-group-item d-flex justify-content-between align-items-center';
+    item.innerHTML = `
+        <span>${icon} <strong>${name}</strong></span>
+        <small class="text-muted">${now}</small>
+    `;
+    el.insertBefore(item, el.firstChild);
+    
+    scanHistory.unshift({ name, type, time: now });
+    
+    // Keep max 10
+    while (el.children.length > 10) {
+        el.removeChild(el.lastChild);
+    }
+}
+
+// Success Popup Modal
+let popupTimer = null;
+let popupProgressTimer = null;
+
+function showSuccessPopup(namaLengkap, jamAbsen) {
+    const modal = document.getElementById('successModal');
+    const namaEl = document.getElementById('popup-nama');
+    const jamEl = document.getElementById('popup-jam');
+    const progressEl = document.getElementById('popup-progress');
+    
+    // Set data
+    namaEl.textContent = namaLengkap || 'Siswa';
+    jamEl.textContent = jamAbsen || new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+    
+    // Reset progress bar
+    progressEl.style.transition = 'none';
+    progressEl.style.width = '100%';
+    
+    // Show modal
+    const bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
+    
+    // Animate progress bar
+    setTimeout(() => {
+        progressEl.style.transition = 'width 3s linear';
+        progressEl.style.width = '0%';
+    }, 100);
+    
+    // Auto-close after 3 seconds
+    if (popupTimer) clearTimeout(popupTimer);
+    popupTimer = setTimeout(() => {
+        bsModal.hide();
+    }, 3000);
+}
+
+// Mood Edit Functions
+function editMood(absensiId, currentMood) {
+    const moods = [
+        {value: 'senang', emoji: '😊', label: 'Senang'},
+        {value: 'sedih', emoji: '😢', label: 'Sedih'},
+        {value: 'netral', emoji: '😐', label: 'Netral'},
+        {value: 'mengantuk', emoji: '😴', label: 'Mengantuk'},
+        {value: 'sakit', emoji: '🤒', label: 'Sakit'},
+    ];
+    
+    let html = '<div class="d-flex gap-2 flex-wrap justify-content-center">';
+    moods.forEach(m => {
+        const active = m.value === currentMood ? 'btn-primary' : 'btn-outline-secondary';
+        html += `<button class="btn ${active} btn-lg" onclick="saveMood(${absensiId}, '${m.value}')" style="font-size: 1.5rem; width: 70px;">${m.emoji}</button>`;
+    });
+    html += '</div>';
+    
+    document.getElementById('mood-buttons-' + absensiId).innerHTML = html;
+}
+
+function saveMood(absensiId, mood) {
+    fetch(`/api/absensi/${absensiId}/mood`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({mood: mood})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            // Update display
+            const moodEmojis = {'senang': '😊', 'sedih': '😢', 'netral': '😐', 'mengantuk': '😴', 'sakit': '🤒'};
+            document.getElementById('mood-display-' + absensiId).innerHTML = 
+                `<span class="badge bg-light text-dark" style="font-size: 1.2rem;">${moodEmojis[mood] || ''} ${mood}</span>`;
+            document.getElementById('mood-buttons-' + absensiId).innerHTML = 
+                `<button class="btn btn-sm btn-outline-primary" onclick="editMood(${absensiId}, '${mood}')">Edit</button>`;
+        }
+    });
+}
+</script>
+{% endblock %}

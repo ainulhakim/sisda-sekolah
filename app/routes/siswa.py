@@ -172,6 +172,12 @@ def siswa_import():
         return render_template('siswa/import.html', log=log, errors=errors)
     return render_template('siswa/import.html', log=None, errors=[])
 
+@routes_bp.route('/siswa/<int:id>/qr_card')
+@login_required
+def siswa_qr_card(id):
+    s = Siswa.query.get_or_404(id)
+    return render_template('siswa/qr_card.html', siswa=s)
+
 @routes_bp.route('/siswa/export')
 @login_required
 def siswa_export():
