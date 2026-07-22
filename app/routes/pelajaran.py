@@ -187,9 +187,11 @@ def pelajaran_input_nilai(id):
         if n:
             existing_grades[s.id] = n
 
+    selected_kelas_id = request.args.get('kelas_id', type=int)
     return render_template('pelajaran/input_nilai.html',
                            mp=mp, siswa_list=siswa_list, kelas_list=kelas_list,
-                           existing_grades=existing_grades, ta=ta, semester=semester)
+                           existing_grades=existing_grades, ta=ta, semester=semester,
+                           selected_kelas_id=selected_kelas_id)
 
 
 # ── Lihat Nilai Siswa ──────────────────────────────────────────

@@ -32,7 +32,7 @@
                 <select name="kelas_id" class="form-select form-select-sm" onchange="this.form.submit()">
                     <option value="">Semua Kelas</option>
                     {% for k in kelas_list %}
-                    <option value="{{ k.id }}" {{ 'selected' if request.args.get('kelas_id', type=int) == k.id }}>{{ k.nama_kelas }}</option>
+                    <option value="{{ k.id }}" {{ 'selected' if selected_kelas_id == k.id }}>{{ k.nama_kelas }}</option>
                     {% endfor %}
                 </select>
             </div>
