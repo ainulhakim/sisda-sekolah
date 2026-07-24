@@ -95,7 +95,54 @@
                     <p><strong>Siswa:</strong> {{ editing.jumlah_siswa }} / {{ editing.kuota }}</p>
                     <p><strong>Tahun Ajaran:</strong> {{ editing.tahun_ajaran.nama if editing.tahun_ajaran else '-' }}</p>
                 </div>
-                <a href="{{ url_for('routes.kelas_list') }}" class="btn btn-secondary btn-sm w-100 mt-2"><i class="fas fa-arrow-left me-1"></i>Kembali</a>
+                
+                <!-- Guru Mengajar Section -->
+                <hr>
+                <h6 class="mb-3"><i class="fas fa-chalkboard-teacher me-2"></i>Guru Mengajar</h6>
+                
+                <!-- Add Guru Form -->
+                <form method="POST" action="{{ url_for('routes.kelas_tambah_guru', kelas_id=editing.id) }}" class="mb-3">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-2">
+                        <label class="form-label small">Guru</label>
+                        <select class="form-select form-select-sm" name="guru_id" required>
+                            <option value="">-- Pilih Guru --</option>
+                            {% for g in guru_list %}<option value="{{ g.id }}">{{ g.nama_lengkap }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Mata Pelajaran</label>
+                        <select class="form-select form-select-sm" name="mata_pelajaran_id" required>
+                            <option value="">-- Pilih Mapel --</option>
+                            {% for mp in mp_list %}<option value="{{ mp.id }}">{{ mp.nama }} ({{ mp.kode }})</option>{% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-success btn-sm w-100"><i class="fas fa-plus me-1"></i>Tambah Guru</button>
+                </form>
+                
+                <!-- List Guru Mengajar -->
+                {% if editing.guru_mengajar %}
+                <div class="list-group list-group-flush" style="max-height: 200px; overflow-y: auto;">
+                    {% for gm in editing.guru_mengajar %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center py-2">
+                        <div>
+                            <div class="fw-bold small">{{ gm.guru.nama_lengkap }}</div>
+                            <small class="text-muted">{{ gm.mata_pelajaran.nama }}</small>
+                        </div>
+                        <form method="POST" action="{{ url_for('routes.kelas_hapus_guru', id=gm.id) }}" onsubmit="return confirm('Hapus penugasan ini?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-outline-danger btn-sm" title="Hapus"><i class="fas fa-times"></i></button>
+                        </form>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-2">
+                    <small>Belum ada guru mengajar</small>
+                </div>
+                {% endif %}
+                
+                <a href="{{ url_for('routes.kelas_list') }}" class="btn btn-secondary btn-sm w-100 mt-3"><i class="fas fa-arrow-left me-1"></i>Kembali</a>
                 {% else %}
                 <form method="POST" action="{{ url_for('routes.kelas_tambah') }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

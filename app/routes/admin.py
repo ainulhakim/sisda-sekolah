@@ -2,7 +2,7 @@ from app.timezone import utcnow_wib
 from flask import render_template, request, redirect, url_for, flash, current_app
 from flask_login import login_required, current_user
 from app.routes import routes_bp
-from app.models import Guru, Kelas, TahunAjaran, Kurikulum, User, SekolahConfig, get_sekolah_config
+from app.models import Guru, Kelas, TahunAjaran, Kurikulum, User, SekolahConfig, get_sekolah_config, GuruMengajar, MataPelajaran
 from app import db
 import os
 import secrets
@@ -150,11 +150,65 @@ def kelas_edit(id):
         k.kuota = request.form.get('kuota', 30, type=int)
         db.session.commit()
         flash(f'Kelas {k.nama_kelas} berhasil diupdate!', 'success')
-        return redirect(url_for('routes.kelas_list'))
+        return redirect(url_for('routes.kelas_edit', id=k.id))
     guru_list = Guru.query.filter_by(is_active=True).all()
     ta_list = TahunAjaran.query.all()
+    mp_list = MataPelajaran.query.filter_by(is_active=True).order_by(MataPelajaran.nama).all()
     return render_template('admin/kelas.html', kelas_list=Kelas.query.all(),
-                           guru_list=guru_list, ta_list=ta_list, editing=k)
+                           guru_list=guru_list, ta_list=ta_list, mp_list=mp_list, editing=k)
+
+# ── Tambah Guru Mengajar ──────────────────────────────────────
+@routes_bp.route('/admin/kelas/<int:kelas_id>/tambah-guru', methods=['POST'])
+@login_required
+def kelas_tambah_guru(kelas_id):
+    if current_user.role != 'admin':
+        flash('Akses ditolak!', 'danger')
+        return redirect(url_for('routes.dashboard'))
+    k = Kelas.query.get_or_404(kelas_id)
+    guru_id = request.form.get('guru_id', type=int)
+    mp_id = request.form.get('mata_pelajaran_id', type=int)
+    ta_id = request.form.get('tahun_ajaran_id', type=int) or k.tahun_ajaran_id
+    
+    if not guru_id or not mp_id:
+        flash('Pilih guru dan mata pelajaran!', 'danger')
+        return redirect(url_for('routes.kelas_edit', id=kelas_id))
+    
+    # Check if already exists
+    existing = GuruMengajar.query.filter_by(
+        guru_id=guru_id, kelas_id=kelas_id, 
+        mata_pelajaran_id=mp_id, tahun_ajaran_id=ta_id
+    ).first()
+    if existing:
+        flash('Guru sudah ditugaskan untuk mata pelajaran ini di kelas ini!', 'warning')
+        return redirect(url_for('routes.kelas_edit', id=kelas_id))
+    
+    gm = GuruMengajar(
+        guru_id=guru_id,
+        kelas_id=kelas_id,
+        mata_pelajaran_id=mp_id,
+        tahun_ajaran_id=ta_id
+    )
+    db.session.add(gm)
+    db.session.commit()
+    
+    guru = Guru.query.get(guru_id)
+    mp = MataPelajaran.query.get(mp_id)
+    flash(f'{guru.nama_lengkap} berhasil ditugaskan mengampu {mp.nama} di kelas {k.nama_kelas}!', 'success')
+    return redirect(url_for('routes.kelas_edit', id=kelas_id))
+
+# ── Hapus Guru Mengajar ──────────────────────────────────────
+@routes_bp.route('/admin/kelas/guru-mengajar/<int:id>/hapus', methods=['POST'])
+@login_required
+def kelas_hapus_guru(id):
+    if current_user.role != 'admin':
+        flash('Akses ditolak!', 'danger')
+        return redirect(url_for('routes.dashboard'))
+    gm = GuruMengajar.query.get_or_404(id)
+    kelas_id = gm.kelas_id
+    db.session.delete(gm)
+    db.session.commit()
+    flash('Penugasan guru berhasil dihapus.', 'info')
+    return redirect(url_for('routes.kelas_edit', id=kelas_id))
 
 @routes_bp.route('/admin/kelas/<int:id>/hapus', methods=['POST'])
 @login_required

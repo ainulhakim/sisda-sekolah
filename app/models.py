@@ -48,6 +48,23 @@ class Guru(db.Model):
     
     kelas_wali = db.relationship('Kelas', backref='wali_kelas', lazy=True)
     absensi = db.relationship('Absensi', backref='guru', lazy=True)
+    mengajar = db.relationship('GuruMengajar', backref='guru', lazy=True)
+
+class GuruMengajar(db.Model):
+    """Guru yang mengampu mata pelajaran di kelas tertentu."""
+    __tablename__ = 'guru_mengajar'
+    id = db.Column(db.Integer, primary_key=True)
+    guru_id = db.Column(db.Integer, db.ForeignKey('guru.id'), nullable=False)
+    kelas_id = db.Column(db.Integer, db.ForeignKey('kelas.id'), nullable=False)
+    mata_pelajaran_id = db.Column(db.Integer, db.ForeignKey('mata_pelajaran.id'), nullable=False)
+    tahun_ajaran_id = db.Column(db.Integer, db.ForeignKey('tahun_ajaran.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Unique constraint: one teacher per subject per class per year
+    __table_args__ = (
+        db.UniqueConstraint('guru_id', 'kelas_id', 'mata_pelajaran_id', 'tahun_ajaran_id', 
+                           name='uq_guru_kelas_mp_ta'),
+    )
 
 class Kelas(db.Model):
     __tablename__ = 'kelas'
@@ -60,6 +77,7 @@ class Kelas(db.Model):
     
     siswa = db.relationship('Siswa', backref='kelas', lazy=True)
     absensi = db.relationship('Absensi', backref='kelas', lazy=True)
+    guru_mengajar = db.relationship('GuruMengajar', backref='kelas', lazy=True)
     
     @property
     def jumlah_siswa(self):
@@ -217,25 +235,23 @@ class PrestasiLomba(db.Model):
 
     @property
     def juara_angka(self):
-        """Extract numeric rank from juara string for sorting."""
+        import re
         if not self.juara:
             return 999
-        import re
         match = re.search(r'(\d+)', self.juara)
         return int(match.group(1)) if match else 999
 
     @property
     def juara_color(self):
-        """Return Bootstrap color class based on juara."""
         if not self.juara:
             return 'secondary'
         j = self.juara.lower()
         if 'juara 1' in j or '1' == j.strip():
-            return 'warning'  # gold
+            return 'warning'
         elif 'juara 2' in j:
-            return 'secondary'  # silver
+            return 'secondary'
         elif 'juara 3' in j:
-            return 'info'  # bronze-ish
+            return 'info'
         elif 'harapan' in j:
             return 'primary'
         else:
