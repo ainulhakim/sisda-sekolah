@@ -95,13 +95,15 @@ def guru_reset_password(id):
         flash('Akses ditolak!', 'danger')
         return redirect(url_for('routes.dashboard'))
     g = Guru.query.get_or_404(id)
-    if not g.user:
+    # g.user is a list (backref from User), get the first one
+    user = g.user[0] if g.user else None
+    if not user:
         flash(f'Guru {g.nama_lengkap} belum memiliki akun login.', 'warning')
         return redirect(url_for('routes.guru_list'))
     new_password = secrets.token_urlsafe(8)
-    g.user.set_password(new_password)
+    user.set_password(new_password)
     db.session.commit()
-    flash(f'Password {g.nama_lengkap} direset! Username: {g.user.username}, Password Baru: {new_password}', 'success')
+    flash(f'Password {g.nama_lengkap} direset! Username: {user.username}, Password Baru: {new_password}', 'success')
     return redirect(url_for('routes.guru_list'))
 
 @routes_bp.route('/admin/kelas')
