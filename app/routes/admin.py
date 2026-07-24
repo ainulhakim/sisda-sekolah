@@ -2,7 +2,7 @@ from app.timezone import utcnow_wib
 from flask import render_template, request, redirect, url_for, flash, current_app
 from flask_login import login_required, current_user
 from app.routes import routes_bp
-from app.models import Guru, Kelas, TahunAjaran, Kurikulum, User, SekolahConfig, get_sekolah_config, GuruMengajar, MataPelajaran
+from app.models import Guru, Kelas, TahunAjaran, Kurikulum, User, SekolahConfig, get_sekolah_config, GuruMengajar, MataPelajaran, Siswa
 from app import db
 import os
 import secrets
