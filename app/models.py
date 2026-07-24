@@ -60,6 +60,10 @@ class GuruMengajar(db.Model):
     tahun_ajaran_id = db.Column(db.Integer, db.ForeignKey('tahun_ajaran.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
+    # Relationships
+    mata_pelajaran = db.relationship('MataPelajaran', backref='guru_mengajar', lazy=True)
+    tahun_ajaran = db.relationship('TahunAjaran', backref='guru_mengajar', lazy=True)
+    
     # Unique constraint: one teacher per subject per class per year
     __table_args__ = (
         db.UniqueConstraint('guru_id', 'kelas_id', 'mata_pelajaran_id', 'tahun_ajaran_id', 
