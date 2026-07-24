@@ -241,8 +241,21 @@ def guru_kelas_view():
         # Admin sees all classes
         kelas_list = Kelas.query.all()
     elif guru:
-        # Guru sees only their assigned class (wali kelas)
-        kelas_list = Kelas.query.filter_by(wali_kelas_id=guru.id).all()
+        # Guru sees: (1) class where they are wali kelas + (2) classes where they teach
+        wali_kelas = Kelas.query.filter_by(wali_kelas_id=guru.id).all()
+        
+        # Get classes from guru_mengajar assignments
+        mengajar_kelas_ids = db.session.query(GuruMengajar.kelas_id).filter_by(guru_id=guru.id).distinct().all()
+        mengajar_kelas_ids = [r[0] for r in mengajar_kelas_ids]
+        mengajar_kelas = Kelas.query.filter(Kelas.id.in_(mengajar_kelas_ids)).all() if mengajar_kelas_ids else []
+        
+        # Merge and deduplicate (keep order: wali first, then mengajar)
+        seen_ids = set()
+        kelas_list = []
+        for k in wali_kelas + mengajar_kelas:
+            if k.id not in seen_ids:
+                seen_ids.add(k.id)
+                kelas_list.append(k)
     else:
         kelas_list = []
     

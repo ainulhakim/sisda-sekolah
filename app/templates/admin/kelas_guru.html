@@ -7,7 +7,7 @@
 <div class="alert alert-info">
     <i class="fas fa-info-circle me-2"></i>
     {% if current_user.role == 'guru' %}
-    Anda belum ditugaskan sebagai wali kelas. Hubungi admin untuk penugasan.
+    Anda belum ditugaskan sebagai wali kelas atau guru mengajar di kelas manapun. Hubungi admin untuk penugasan.
     {% else %}
     Belum ada kelas yang terdaftar.
     {% endif %}
@@ -20,6 +20,11 @@
         <h6 class="mb-0">
             <i class="fas fa-door-open me-2"></i>{{ k.nama_kelas }}
             <span class="badge bg-light text-primary ms-2">Tingkat {{ k.tingkat }}</span>
+            {% if k.wali_kelas_id == guru.id %}
+            <span class="badge bg-warning text-dark ms-2"><i class="fas fa-star me-1"></i>Wali Kelas</span>
+            {% else %}
+            <span class="badge bg-info ms-2"><i class="fas fa-chalkboard-teacher me-1"></i>Guru Mengajar</span>
+            {% endif %}
         </h6>
         <span class="badge bg-white text-primary">{{ kelas_siswa[k.id]|length }} Siswa</span>
     </div>
