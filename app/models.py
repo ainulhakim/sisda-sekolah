@@ -131,6 +131,28 @@ class Siswa(db.Model):
         hadir = Absensi.query.filter_by(siswa_id=self.id, status='hadir').count()
         return round((hadir / total) * 100, 1)
 
+class BintangHarian(db.Model):
+    """Pencatatan bintang/jempol bawah harian untuk siswa."""
+    __tablename__ = 'bintang_harian'
+    id = db.Column(db.Integer, primary_key=True)
+    siswa_id = db.Column(db.Integer, db.ForeignKey('siswa.id'), nullable=False)
+    guru_id = db.Column(db.Integer, db.ForeignKey('guru.id'), nullable=False)
+    kelas_id = db.Column(db.Integer, db.ForeignKey('kelas.id'), nullable=False)
+    tanggal = db.Column(db.Date, nullable=False, default=date.today)
+    jenis = db.Column(db.String(10), nullable=False)  # 'bintang' or 'jempol'
+    deskripsi = db.Column(db.Text, nullable=False)  # Alasan pemberian
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    siswa = db.relationship('Siswa', backref='bintang_harian')
+    guru = db.relationship('Guru', backref='bintang_diberikan')
+    kelas = db.relationship('Kelas', backref='bintang_harian')
+    
+    __table_args__ = (
+        db.Index('ix_bintang_siswa_tanggal', 'siswa_id', 'tanggal'),
+        db.Index('ix_bintang_kelas_tanggal', 'kelas_id', 'tanggal'),
+    )
+
 class Absensi(db.Model):
     __tablename__ = 'absensi'
     id = db.Column(db.Integer, primary_key=True)

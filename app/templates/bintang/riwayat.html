@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}Riwayat Bintang{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0"><i class="fas fa-star me-2"></i>Riwayat Bintang</h4>
+</div>
+
+<!-- Filter -->
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body py-2">
+        <form method="GET" class="row g-2 align-items-center">
+            <div class="col-auto">
+                <label class="form-label small fw-bold mb-0">Kelas</label>
+            </div>
+            <div class="col-auto">
+                <select name="kelas_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                    {% for k in kelas_list %}
+                    <option value="{{ k.id }}" {% if selected_kelas_id == k.id %}selected{% endif %}>{{ k.nama_kelas }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label small fw-bold mb-0">Tanggal</label>
+            </div>
+            <div class="col-auto">
+                <input type="date" name="tanggal" class="form-control form-control-sm" value="{{ request.args.get('tanggal', '') }}">
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter me-1"></i>Filter</button>
+            </div>
+            <div class="col-auto">
+                <a href="{{ url_for('routes.bintang_leaderboard', kelas_id=selected_kelas_id) }}" class="btn btn-warning btn-sm"><i class="fas fa-trophy me-1"></i>Leaderboard</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Form Beri Bintang -->
+    <div class="col-md-5">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-warning text-dark">
+                <h6 class="mb-0"><i class="fas fa-star me-2"></i>Beri Bintang / Jempol</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('routes.bintang_beri') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="kelas_id" value="{{ selected_kelas_id }}">
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Tanggal</label>
+                        <input type="date" name="tanggal" class="form-control form-control-sm" value="{{ today }}">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Jenis</label>
+                        <div class="d-flex gap-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="jenis" id="jenisBintang" value="bintang" checked>
+                                <label class="form-check-label" for="jenisBintang">⭐ Bintang</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="jenis" id="jenisJempol" value="jempol">
+                                <label class="form-check-label" for="jenisJempol">👎 Jempol Bawah</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Deskripsi</label>
+                        <textarea name="deskripsi" class="form-control form-control-sm" rows="2" placeholder="Alasan pemberian bintang/jempol..." required></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Pilih Siswa</label>
+                        <div class="d-flex gap-2 mb-2">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="selectAll()">Pilih Semua</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="deselectAll()">Batal Pilih</button>
+                        </div>
+                        <div class="border rounded p-2" style="max-height: 200px; overflow-y: auto;">
+                            {% for s in siswa_list %}
+                            <div class="form-check">
+                                <input class="form-check-input siswa-check" type="checkbox" name="siswa_ids" value="{{ s.id }}" id="siswa{{ s.id }}">
+                                <label class="form-check-label" for="siswa{{ s.id }}">{{ s.nama_lengkap }}</label>
+                            </div>
+                            {% endfor %}
+                            {% if not siswa_list %}
+                            <div class="text-muted text-center py-2">Tidak ada siswa aktif</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-warning w-100"><i class="fas fa-paper-plane me-1"></i>Kirim</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Riwayat -->
+    <div class="col-md-7">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white">
+                <h6 class="mb-0">Riwayat Pencatatan</h6>
+            </div>
+            <div class="card-body p-0">
+                {% if records %}
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>Siswa</th>
+                                <th>Jenis</th>
+                                <th>Deskripsi</th>
+                                <th>Oleh</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in records %}
+                            <tr>
+                                <td><small>{{ r.tanggal.strftime('%d/%m/%Y') }}</small></td>
+                                <td>{{ r.siswa.nama_lengkap }}</td>
+                                <td>
+                                    {% if r.jenis == 'bintang' %}
+                                    <span class="badge bg-warning text-dark">⭐ Bintang</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">👎 Jempol</span>
+                                    {% endif %}
+                                </td>
+                                <td><small>{{ r.deskripsi }}</small></td>
+                                <td><small>{{ r.guru.nama_lengkap }}</small></td>
+                                <td>
+                                    <form method="POST" action="{{ url_for('routes.bintang_hapus', id=r.id) }}" onsubmit="return confirm('Hapus catatan ini?')">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button class="btn btn-outline-danger btn-sm" title="Hapus"><i class="fas fa-trash"></i></button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="fas fa-inbox fa-2x mb-2"></i>
+                    <p>Belum ada pencatatan bintang</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function selectAll() {
+    document.querySelectorAll('.siswa-check').forEach(cb => cb.checked = true);
+}
+function deselectAll() {
+    document.querySelectorAll('.siswa-check').forEach(cb => cb.checked = false);
+}
+</script>
+{% endblock %}
