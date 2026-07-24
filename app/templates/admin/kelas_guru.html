@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Kelas Saya{% endblock %}
+{% block content %}
+<h4 class="mb-4"><i class="fas fa-door-open me-2"></i>Kelas Saya</h4>
+
+{% if not kelas_list %}
+<div class="alert alert-info">
+    <i class="fas fa-info-circle me-2"></i>
+    {% if current_user.role == 'guru' %}
+    Anda belum ditugaskan sebagai wali kelas. Hubungi admin untuk penugasan.
+    {% else %}
+    Belum ada kelas yang terdaftar.
+    {% endif %}
+</div>
+{% endif %}
+
+{% for k in kelas_list %}
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">
+            <i class="fas fa-door-open me-2"></i>{{ k.nama_kelas }}
+            <span class="badge bg-light text-primary ms-2">Tingkat {{ k.tingkat }}</span>
+        </h6>
+        <span class="badge bg-white text-primary">{{ kelas_siswa[k.id]|length }} Siswa</span>
+    </div>
+    <div class="card-body">
+        <!-- Info Kelas -->
+        <div class="row g-3 mb-3">
+            <div class="col-md-3">
+                <small class="text-muted">Wali Kelas</small>
+                <div class="fw-bold">{{ k.wali_kelas.nama_lengkap if k.wali_kelas else '-' }}</div>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Tahun Ajaran</small>
+                <div class="fw-bold">{{ k.tahun_ajaran.nama if k.tahun_ajaran else '-' }} S{{ k.tahun_ajaran.semester if k.tahun_ajaran else '' }}</div>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Kuota</small>
+                <div class="fw-bold">{{ k.kuota }} Siswa</div>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Terisi</small>
+                <div class="fw-bold">
+                    {{ kelas_siswa[k.id]|length }} / {{ k.kuota }}
+                    {% set pct = (kelas_siswa[k.id]|length / k.kuota * 100) if k.kuota > 0 else 0 %}
+                    <div class="progress mt-1" style="height: 8px;">
+                        <div class="progress-bar {% if pct > 80 %}bg-danger{% elif pct > 50 %}bg-warning{% else %}bg-success{% endif %}" 
+                             style="width: {{ pct }}%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Daftar Siswa -->
+        <h6 class="border-bottom pb-2 mt-4"><i class="fas fa-user-graduate me-2"></i>Daftar Siswa</h6>
+        {% if kelas_siswa[k.id] %}
+        <div class="table-responsive">
+            <table class="table table-hover table-sm mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>NISN</th>
+                        <th>Nama Lengkap</th>
+                        <th>Nama Panggilan</th>
+                        <th>Jenis Kelamin</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in kelas_siswa[k.id] %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td><code>{{ s.nisn or '-' }}</code></td>
+                        <td>{{ s.nama_lengkap }}</td>
+                        <td>{{ s.nama_panggilan or '-' }}</td>
+                        <td>
+                            {% if s.jenis_kelamin == 'L' %}
+                            <span class="badge bg-info">Laki-laki</span>
+                            {% else %}
+                            <span class="badge bg-pink" style="background-color:#e91e63 !important">Perempuan</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if s.status == 'aktif' %}
+                            <span class="badge bg-success">Aktif</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ s.status }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-secondary mb-0">
+            <i class="fas fa-users me-2"></i>Belum ada siswa di kelas ini.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

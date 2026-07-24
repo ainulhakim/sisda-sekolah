@@ -41,6 +41,7 @@
             <li><a href="{{ url_for('routes.absensi_hari_ini') }}" class="{% if 'hari_ini' in request.endpoint %}active{% endif %}"><i class="fas fa-calendar-day me-2"></i>📋 Hari Ini</a></li>
             <li><a href="{{ url_for('routes.absensi_leaderboard') }}" class="{% if 'leaderboard' in request.endpoint %}active{% endif %}"><i class="fas fa-trophy me-2"></i>Leaderboard</a></li>
             <li><a href="{{ url_for('routes.absensi_rekap') }}" class="{% if 'rekap' in request.endpoint %}active{% endif %}"><i class="fas fa-chart-bar me-2"></i>Rekap</a></li>
+            <li><a href="{{ url_for('routes.guru_kelas_view') }}" class="{% if 'kelas' in request.endpoint %}active{% endif %}"><i class="fas fa-door-open me-2"></i>Kelas Saya</a></li>
             <li><a href="{{ url_for('routes.pelajaran_list') }}" class="{% if 'pelajaran' in request.endpoint %}active{% endif %}"><i class="fas fa-book me-2"></i>Input Nilai</a></li>
             {% else %}
             <li><a href="{{ url_for('routes.dashboard') }}" class="{% if request.endpoint == 'routes.dashboard' %}active{% endif %}"><i class="fas fa-home me-2"></i>Dashboard</a></li>

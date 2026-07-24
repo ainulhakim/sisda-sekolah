@@ -171,6 +171,38 @@ def kelas_hapus(id):
     flash(f'Kelas {k.nama_kelas} berhasil dihapus.', 'info')
     return redirect(url_for('routes.kelas_list'))
 
+# ── Guru: Lihat Kelas Saya (Read-Only) ──────────────────────────
+@routes_bp.route('/guru/kelas')
+@login_required
+def guru_kelas_view():
+    """Guru can view their assigned class and students (read-only)."""
+    if current_user.role not in ('admin', 'guru'):
+        flash('Akses ditolak!', 'danger')
+        return redirect(url_for('routes.dashboard'))
+    
+    # Get guru record
+    guru = Guru.query.filter_by(id=current_user.guru_id).first() if current_user.guru_id else None
+    
+    if current_user.role == 'admin':
+        # Admin sees all classes
+        kelas_list = Kelas.query.all()
+    elif guru:
+        # Guru sees only their assigned class (wali kelas)
+        kelas_list = Kelas.query.filter_by(wali_kelas_id=guru.id).all()
+    else:
+        kelas_list = []
+    
+    # Get students for each class
+    kelas_siswa = {}
+    for k in kelas_list:
+        siswa = Siswa.query.filter_by(kelas_id=k.id, status='aktif').order_by(Siswa.nama_lengkap).all()
+        kelas_siswa[k.id] = siswa
+    
+    return render_template('admin/kelas_guru.html', 
+                         kelas_list=kelas_list, 
+                         kelas_siswa=kelas_siswa,
+                         guru=guru)
+
 @routes_bp.route('/admin/settings', methods=['GET', 'POST'])
 @login_required
 def settings():
