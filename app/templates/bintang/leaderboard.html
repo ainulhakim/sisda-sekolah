@@ -44,7 +44,7 @@
     <div class="text-center">
         <div class="bg-secondary text-white d-inline-flex align-items-center justify-content-center rounded-circle mb-1" style="width:36px;height:36px;font-size:0.85rem;">2</div>
         <div class="fw-bold small">{{ leaderboard[1].siswa.nama_panggilan or leaderboard[1].siswa.nama_lengkap }}</div>
-        <div class="text-muted" style="font-size:0.7rem;">🥈 {% for i in range(leaderboard[1].net) %}⭐{% endfor %} ({{ leaderboard[1].net }})</div>
+        <div class="text-muted" style="font-size:0.7rem;">🥈 {% for i in range(leaderboard[1].net // 10) %}<span style="font-size:1.1em;">🌟</span>{% endfor %}{% for i in range(leaderboard[1].net % 10) %}⭐{% endfor %} ({{ leaderboard[1].net }})</div>
     </div>
     {% endif %}
 
@@ -52,7 +52,7 @@
     <div class="text-center">
         <div class="bg-warning text-dark d-inline-flex align-items-center justify-content-center rounded-circle mb-1" style="width:48px;height:48px;font-size:1.2rem;">👑</div>
         <div class="fw-bold">{{ leaderboard[0].siswa.nama_panggilan or leaderboard[0].siswa.nama_lengkap }}</div>
-        <div style="font-size:0.8rem;">🥇 {% for i in range(leaderboard[0].net) %}⭐{% endfor %} ({{ leaderboard[0].net }})</div>
+        <div style="font-size:0.8rem;">🥇 {% for i in range(leaderboard[0].net // 10) %}<span style="font-size:1.1em;">🌟</span>{% endfor %}{% for i in range(leaderboard[0].net % 10) %}⭐{% endfor %} ({{ leaderboard[0].net }})</div>
     </div>
     {% endif %}
 
@@ -60,7 +60,7 @@
     <div class="text-center">
         <div class="bg-info text-white d-inline-flex align-items-center justify-content-center rounded-circle mb-1" style="width:36px;height:36px;font-size:0.85rem;">3</div>
         <div class="fw-bold small">{{ leaderboard[2].siswa.nama_panggilan or leaderboard[2].siswa.nama_lengkap }}</div>
-        <div class="text-muted" style="font-size:0.7rem;">🥉 {% for i in range(leaderboard[2].net) %}⭐{% endfor %} ({{ leaderboard[2].net }})</div>
+        <div class="text-muted" style="font-size:0.7rem;">🥉 {% for i in range(leaderboard[2].net // 10) %}<span style="font-size:1.1em;">🌟</span>{% endfor %}{% for i in range(leaderboard[2].net % 10) %}⭐{% endfor %} ({{ leaderboard[2].net }})</div>
     </div>
     {% endif %}
 </div>
@@ -84,7 +84,7 @@
                             {% if loop.index == 1 %}🥇{% elif loop.index == 2 %}🥈{% elif loop.index == 3 %}🥉{% else %}{{ loop.index }}{% endif %}
                         </td>
                         <td>{{ item.siswa.nama_lengkap }}{% if item.siswa.nama_panggilan %} <small class="text-muted">({{ item.siswa.nama_panggilan }})</small>{% endif %}</td>
-                        <td class="text-center">{% if item.net > 0 %}{% for i in range(item.net) %}⭐{% endfor %} <small class="text-muted">({{ item.net }})</small>{% elif item.net == 0 %}<span class="text-muted">—</span>{% else %}😐{% endif %}</td>
+                        <td class="text-center">{% if item.net > 0 %}{% for i in range(item.net // 10) %}<span style="font-size:1.3em;">🌟</span>{% endfor %}{% for i in range(item.net % 10) %}⭐{% endfor %} <small class="text-muted">({{ item.net }})</small>{% elif item.net == 0 %}<span class="text-muted">—</span>{% else %}😐{% endif %}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
