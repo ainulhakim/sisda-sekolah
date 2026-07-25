@@ -88,7 +88,7 @@
         </div>
         <div class="text-center mb-3">
             {% if net_bintang > 0 %}
-                {% for i in range(net_bintang // 10) %}<span style="font-size:1.3em;">🌟</span>{% endfor %}{% for i in range(net_bintang % 10) %}⭐{% endfor %} <span class="text-muted">({{ net_bintang }})</span>
+                {% for i in range(net_bintang // 100) %}<span style="font-size:1.5em;">💎</span>{% endfor %}{% for i in range((net_bintang % 100) // 10) %}<span style="font-size:1.3em;">🌟</span>{% endfor %}{% for i in range(net_bintang % 10) %}⭐{% endfor %} <span class="text-muted">({{ net_bintang }})</span>
             {% elif net_bintang == 0 %}
                 <span class="text-muted">Belum ada pencatatan hari ini</span>
             {% else %}

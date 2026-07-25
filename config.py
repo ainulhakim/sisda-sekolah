@@ -6,3 +6,7 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', 'sisda-sekolah-secret-key-2026')
     SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(BASE_DIR, 'sisda.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    SESSION_COOKIE_SECURE = True
+    WTF_CSRF_ENABLED = True
+    WTF_CSRF_TIME_LIMIT = None
