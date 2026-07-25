@@ -1,36 +1,30 @@
 {% extends "base.html" %}
-{% block title %}Detail Siswa{% endblock %}
+{% block title %}Rapor {{ siswa.nama_lengkap }}{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0"><i class="fas fa-user me-2"></i>{{ siswa.nama_lengkap }}</h4>
-    <div class="d-flex gap-2">
-        <a href="{{ url_for('routes.assessment_view', siswa_id=siswa.id) }}" class="btn btn-info">
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('routes.assessment_view', siswa_id=siswa.id) }}" class="btn btn-info btn-sm">
             <i class="fas fa-clipboard-check me-1"></i>Assessment
         </a>
-        <a href="{{ url_for('routes.assessment_ortu_view', siswa_id=siswa.id) }}" class="btn btn-warning">
+        <a href="{{ url_for('routes.assessment_ortu_view', siswa_id=siswa.id) }}" class="btn btn-warning btn-sm">
             <i class="fas fa-users me-1"></i>Assessment Ortu
         </a>
-        <a href="{{ url_for('routes.gap_analysis', id=siswa.id) }}" class="btn btn-orange" style="background-color:#fd7e14; border-color:#fd7e14; color:#fff;">
+        <a href="{{ url_for('routes.gap_analysis', id=siswa.id) }}" class="btn btn-sm" style="background-color:#fd7e14; border-color:#fd7e14; color:#fff;">
             <i class="fas fa-balance-scale me-1"></i>Gap Analysis
         </a>
-        <a href="{{ url_for('routes.siswa_nilai', id=siswa.id) }}" class="btn btn-success">
-            <i class="fas fa-graduation-cap me-1"></i>Lihat Nilai
+        <a href="{{ url_for('routes.siswa_nilai', id=siswa.id) }}" class="btn btn-success btn-sm">
+            <i class="fas fa-graduation-cap me-1"></i>Nilai
         </a>
-        <a href="{{ url_for('routes.kemampuan_dasar', id=siswa.id) }}" class="btn btn-primary">
-            <i class="fas fa-chart-radar me-1"></i>Kemampuan Dasar
-        </a>
-        <a href="{{ url_for('routes.cetak_rapor', id=siswa.id) }}" class="btn btn-success" target="_blank">
+        <a href="{{ url_for('routes.cetak_rapor', id=siswa.id) }}" class="btn btn-success btn-sm" target="_blank">
             <i class="fas fa-print me-1"></i>Cetak Rapor
         </a>
-        {% if current_user.role == 'admin' %}
-        <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteSiswaModal">
-            <i class="fas fa-trash me-1"></i>Hapus
-        </button>
-        {% endif %}
         <a href="{{ url_for('routes.siswa_list') }}" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i>Kembali</a>
     </div>
 </div>
+
 <div class="row g-3">
+    <!-- LEFT: Profile -->
     <div class="col-md-4">
         <div class="card border-0 shadow-sm text-center p-4">
             {% if siswa.foto_profil %}
@@ -52,7 +46,79 @@
             </div>
         </div>
     </div>
+
+    <!-- RIGHT: Raport -->
     <div class="col-md-8">
+
+        <!-- ═══ CAPAIAN BINTANG ═══ -->
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">⭐ Capaian Bintang</h6>
+                <div class="d-flex gap-1">
+                    <a href="?periode=harian" class="btn btn-sm {% if periode == 'harian' %}btn-warning{% else %}btn-outline-secondary{% endif %}">📅 Harian</a>
+                    <a href="?periode=pekanan" class="btn btn-sm {% if periode == 'pekanan' %}btn-warning{% else %}btn-outline-secondary{% endif %}">📆 Pekanan</a>
+                    <a href="?periode=bulanan" class="btn btn-sm {% if periode == 'bulanan' %}btn-warning{% else %}btn-outline-secondary{% endif %}">🗓️ Bulanan</a>
+                    <a href="?periode=semester" class="btn btn-sm {% if periode == 'semester' %}btn-warning{% else %}btn-outline-secondary{% endif %}">📋 Semester</a>
+                    <a href="?periode=tahunan" class="btn btn-sm {% if periode == 'tahunan' %}btn-warning{% else %}btn-outline-secondary{% endif %}">📊 Tahunan</a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col">
+                        <div class="display-6 fw-bold text-success">{{ bintang_count }}</div>
+                        <small class="text-muted">⭐ Diterima</small>
+                    </div>
+                    <div class="col">
+                        <div class="display-6 fw-bold text-danger">{{ jempol_count }}</div>
+                        <small class="text-muted">👎 Diberikan</small>
+                    </div>
+                    <div class="col">
+                        <div class="display-6 fw-bold {% if net_bintang > 0 %}text-success{% elif net_bintang < 0 %}text-danger{% else %}text-secondary{% endif %}">{{ net_bintang }}</div>
+                        <small class="text-muted">🏆 Net Score</small>
+                    </div>
+                </div>
+                <hr>
+                <div class="text-center">
+                    {% if net_bintang > 0 %}
+                        {% for i in range(net_bintang) %}⭐{% endfor %} <span class="text-muted">({{ net_bintang }})</span>
+                    {% elif net_bintang == 0 %}
+                        <span class="text-muted">Belum ada pencatatan</span>
+                    {% else %}
+                        😐 <span class="text-danger">({{ net_bintang }})</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ PRESTASI ═══ -->
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-white"><h6 class="mb-0">🏆 Capaian Prestasi ({{ prestasi|length }})</h6></div>
+            <div class="card-body">
+                {% if prestasi %}
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead class="table-light">
+                            <tr><th>Lomba</th><th class="text-center">Juara</th><th>Kategori</th><th>Tanggal</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for p in prestasi %}
+                            <tr>
+                                <td><strong>{{ p.lomba.nama }}</strong><br><small class="text-muted">{{ p.lomba.penyelenggara or '' }}</small></td>
+                                <td class="text-center"><span class="badge bg-{{ p.juara_color }}">{{ p.juara }}</span></td>
+                                <td>{{ p.kategori or '-' }}</td>
+                                <td>{{ p.tanggal_dapat.strftime('%d/%m/%Y') if p.tanggal_dapat else '-' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center mb-0">Belum ada pencatatan prestasi</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- ═══ RINGKASAN NILAI ═══ -->
         {% set nilai_list = siswa.nilai_pelajaran_list %}
         {% if nilai_list %}
         <div class="card border-0 shadow-sm mb-3">
@@ -88,8 +154,10 @@
             </div>
         </div>
         {% endif %}
+
+        <!-- ═══ BADGE ═══ -->
         <div class="card border-0 shadow-sm mb-3">
-            <div class="card-header bg-white"><h6 class="mb-0">🏆 Badge ({{ badges|length }})</h6></div>
+            <div class="card-header bg-white"><h6 class="mb-0">🏅 Badge ({{ badges|length }})</h6></div>
             <div class="card-body">
                 <div class="row g-2">
                     {% for sb in badges %}
@@ -104,8 +172,34 @@
                 </div>
             </div>
         </div>
+
+        <!-- ═══ RIWAYAT BINTANG ═══ -->
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-white"><h6 class="mb-0">📝 Riwayat Bintang Terakhir</h6></div>
+            <div class="card-body p-0">
+                {% if bintang_recent %}
+                <table class="table table-sm mb-0">
+                    <thead class="table-light"><tr><th>Tanggal</th><th>Jenis</th><th>Oleh</th><th>Deskripsi</th></tr></thead>
+                    <tbody>
+                    {% for b in bintang_recent %}
+                    <tr>
+                        <td>{{ b.tanggal.strftime('%d/%m/%Y') }}</td>
+                        <td>{% if b.jenis == 'bintang' %}<span class="text-success fw-bold">⭐ Bintang</span>{% else %}<span class="text-danger fw-bold">👎 Jempol</span>{% endif %}</td>
+                        <td>{{ b.guru.nama if b.guru else '-' }}</td>
+                        <td>{{ b.deskripsi or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-muted text-center mb-0 py-3">Belum ada riwayat bintang</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- ═══ RIWAYAT ABSENSI ═══ -->
         <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white"><h6 class="mb-0">📋 Riwayat Absensi</h6></div>
+            <div class="card-header bg-white"><h6 class="mb-0">📋 Riwayat Absensi (30 Hari Terakhir)</h6></div>
             <div class="card-body p-0">
                 <table class="table table-sm mb-0">
                     <thead class="table-light"><tr><th>Tanggal</th><th>Status</th><th>Mood</th><th>Jam Masuk</th></tr></thead>

@@ -149,7 +149,7 @@ def bintang_leaderboard():
     
     guru = Guru.query.filter_by(id=current_user.guru_id).first()
     kelas_id = request.args.get('kelas_id', type=int)
-    periode = request.args.get('periode', 'all')  # 'all', 'bulan', 'minggu'
+    periode = request.args.get('periode', 'harian')  # 'harian', 'pekanan', 'bulanan', 'semester', 'tahunan', 'all'
     
     # Get classes
     if current_user.role == 'admin':
@@ -183,13 +183,24 @@ def bintang_leaderboard():
             
             # Apply date filter
             today = date.today()
-            if periode == 'minggu':
-                from datetime import timedelta
+            from datetime import timedelta
+            if periode == 'harian':
+                query = query.filter(BintangHarian.tanggal == today)
+            elif periode == 'pekanan':
                 start = today - timedelta(days=today.weekday())  # Monday
                 query = query.filter(BintangHarian.tanggal >= start)
-            elif periode == 'bulan':
-                from datetime import timedelta
+            elif periode == 'bulanan':
                 start = today.replace(day=1)
+                query = query.filter(BintangHarian.tanggal >= start)
+            elif periode == 'semester':
+                # Semester 1: Jan-Jun, Semester 2: Jul-Dec
+                if today.month <= 6:
+                    start = today.replace(month=1, day=1)
+                else:
+                    start = today.replace(month=7, day=1)
+                query = query.filter(BintangHarian.tanggal >= start)
+            elif periode == 'tahunan':
+                start = today.replace(month=1, day=1)
                 query = query.filter(BintangHarian.tanggal >= start)
             
             bintang = query.filter_by(jenis='bintang').count()

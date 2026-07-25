@@ -27,6 +27,8 @@
             <li><a href="{{ url_for('routes.absensi_hari_ini') }}" class="{% if 'hari_ini' in request.endpoint %}active{% endif %}"><i class="fas fa-calendar-day me-2"></i>📋 Hari Ini</a></li>
             <li><a href="{{ url_for('routes.absensi_leaderboard') }}" class="{% if 'leaderboard' in request.endpoint %}active{% endif %}"><i class="fas fa-trophy me-2"></i>Leaderboard</a></li>
             <li><a href="{{ url_for('routes.absensi_badges') }}" class="{% if 'badges' in request.endpoint %}active{% endif %}"><i class="fas fa-medal me-2"></i>Badges</a></li>
+            <li><a href="{{ url_for('routes.bintang_riwayat') }}" class="{% if 'bintang' in request.endpoint and 'leaderboard' not in request.endpoint %}active{% endif %}"><i class="fas fa-star me-2"></i>⭐ Bintang</a></li>
+            <li><a href="{{ url_for('routes.bintang_leaderboard') }}" class="{% if 'bintang_leaderboard' in request.endpoint %}active{% endif %}"><i class="fas fa-medal me-2"></i>🏆 Leaderboard Bintang</a></li>
             <li><a href="{{ url_for('routes.lomba_list') }}" class="{% if 'lomba' in request.endpoint or 'prestasi' in request.endpoint %}active{% endif %}"><i class="fas fa-trophy me-2"></i>Lomba & Prestasi</a></li>
             <li><hr class="text-white-50"></li>
             <li><a href="{{ url_for('routes.guru_list') }}" class="{% if 'guru' in request.endpoint %}active{% endif %}"><i class="fas fa-chalkboard-teacher me-2"></i>Data Guru</a></li>

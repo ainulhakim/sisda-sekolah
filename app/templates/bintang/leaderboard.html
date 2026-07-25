@@ -25,9 +25,12 @@
             </div>
             <div class="col-auto">
                 <select name="periode" class="form-select form-select-sm" onchange="this.form.submit()">
-                    <option value="all" {% if periode == 'all' %}selected{% endif %}>Semua Waktu</option>
-                    <option value="bulan" {% if periode == 'bulan' %}selected{% endif %}>Bulan Ini</option>
-                    <option value="minggu" {% if periode == 'minggu' %}selected{% endif %}>Minggu Ini</option>
+                    <option value="harian" {% if periode == 'harian' %}selected{% endif %}>📅 Harian</option>
+                    <option value="pekanan" {% if periode == 'pekanan' %}selected{% endif %}>📆 Pekanan</option>
+                    <option value="bulanan" {% if periode == 'bulanan' %}selected{% endif %}>🗓️ Bulanan</option>
+                    <option value="semester" {% if periode == 'semester' %}selected{% endif %}>📋 Semester</option>
+                    <option value="tahunan" {% if periode == 'tahunan' %}selected{% endif %}>📊 Tahunan</option>
+                    <option value="all" {% if periode == 'all' %}selected{% endif %}>🔄 Semua Waktu</option>
                 </select>
             </div>
         </form>
@@ -35,82 +38,53 @@
 </div>
 
 {% if leaderboard %}
-<!-- Podium -->
-<div class="row justify-content-center mb-4">
+<!-- Podium Compact -->
+<div class="d-flex justify-content-center align-items-end gap-3 mb-4">
     {% if leaderboard|length >= 2 %}
-    <!-- 2nd Place -->
-    <div class="col-auto text-center">
-        <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center mx-auto mb-2" style="width: 60px; height: 60px; font-size: 1.5rem;">
-            2
-        </div>
-        <div class="fw-bold">{{ leaderboard[1].siswa.nama_panggilan or leaderboard[1].siswa.nama_lengkap }}</div>
-        <div class="text-muted small">🥈 {{ leaderboard[1].net }} ⭐</div>
+    <div class="text-center">
+        <div class="bg-secondary text-white d-inline-flex align-items-center justify-content-center rounded-circle mb-1" style="width:36px;height:36px;font-size:0.85rem;">2</div>
+        <div class="fw-bold small">{{ leaderboard[1].siswa.nama_panggilan or leaderboard[1].siswa.nama_lengkap }}</div>
+        <div class="text-muted" style="font-size:0.7rem;">🥈 {% for i in range(leaderboard[1].net) %}⭐{% endfor %} ({{ leaderboard[1].net }})</div>
     </div>
     {% endif %}
-    
+
     {% if leaderboard|length >= 1 %}
-    <!-- 1st Place -->
-    <div class="col-auto text-center mx-3">
-        <div class="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center mx-auto mb-2" style="width: 80px; height: 80px; font-size: 2rem;">
-            👑
-        </div>
-        <div class="fw-bold fs-5">{{ leaderboard[0].siswa.nama_panggilan or leaderboard[0].siswa.nama_lengkap }}</div>
-        <div class="text-muted small">🥇 {{ leaderboard[0].net }} ⭐</div>
+    <div class="text-center">
+        <div class="bg-warning text-dark d-inline-flex align-items-center justify-content-center rounded-circle mb-1" style="width:48px;height:48px;font-size:1.2rem;">👑</div>
+        <div class="fw-bold">{{ leaderboard[0].siswa.nama_panggilan or leaderboard[0].siswa.nama_lengkap }}</div>
+        <div style="font-size:0.8rem;">🥇 {% for i in range(leaderboard[0].net) %}⭐{% endfor %} ({{ leaderboard[0].net }})</div>
     </div>
     {% endif %}
-    
+
     {% if leaderboard|length >= 3 %}
-    <!-- 3rd Place -->
-    <div class="col-auto text-center">
-        <div class="rounded-circle bg-info text-white d-flex align-items justify-content-center mx-auto mb-2" style="width: 60px; height: 60px; font-size: 1.5rem;">
-            3
-        </div>
-        <div class="fw-bold">{{ leaderboard[2].siswa.nama_panggilan or leaderboard[2].siswa.nama_lengkap }}</div>
-        <div class="text-muted small">🥉 {{ leaderboard[2].net }} ⭐</div>
+    <div class="text-center">
+        <div class="bg-info text-white d-inline-flex align-items-center justify-content-center rounded-circle mb-1" style="width:36px;height:36px;font-size:0.85rem;">3</div>
+        <div class="fw-bold small">{{ leaderboard[2].siswa.nama_panggilan or leaderboard[2].siswa.nama_lengkap }}</div>
+        <div class="text-muted" style="font-size:0.7rem;">🥉 {% for i in range(leaderboard[2].net) %}⭐{% endfor %} ({{ leaderboard[2].net }})</div>
     </div>
     {% endif %}
 </div>
 
 <!-- Full Leaderboard -->
 <div class="card border-0 shadow-sm">
-    <div class="card-header bg-white">
-        <h6 class="mb-0">Klasemen Lengkap</h6>
-    </div>
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th width="60" class="text-center">Rank</th>
-                        <th>Nama Siswa</th>
-                        <th width="80" class="text-center">⭐</th>
-                        <th width="80" class="text-center">👎</th>
-                        <th width="80" class="text-center">Net</th>
+                        <th width="50" class="text-center">#</th>
+                        <th>Nama</th>
+                        <th width="100" class="text-center">⭐</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for item in leaderboard %}
                     <tr class="{% if loop.index == 1 %}table-warning{% elif loop.index == 2 %}table-secondary{% elif loop.index == 3 %}table-info{% endif %}">
                         <td class="text-center fw-bold">
-                            {% if loop.index == 1 %}🥇
-                            {% elif loop.index == 2 %}🥈
-                            {% elif loop.index == 3 %}🥉
-                            {% else %}{{ loop.index }}
-                            {% endif %}
+                            {% if loop.index == 1 %}🥇{% elif loop.index == 2 %}🥈{% elif loop.index == 3 %}🥉{% else %}{{ loop.index }}{% endif %}
                         </td>
-                        <td>
-                            <div class="fw-bold">{{ item.siswa.nama_lengkap }}</div>
-                            {% if item.siswa.nama_panggilan %}
-                            <small class="text-muted">({{ item.siswa.nama_panggilan }})</small>
-                            {% endif %}
-                        </td>
-                        <td class="text-center">{{ item.bintang }}</td>
-                        <td class="text-center">{{ item.jempol }}</td>
-                        <td class="text-center">
-                            <span class="badge {% if item.net > 0 %}bg-success{% elif item.net < 0 %}bg-danger{% else %}bg-secondary{% endif %} fs-6">
-                                {{ item.net }}
-                            </span>
-                        </td>
+                        <td>{{ item.siswa.nama_lengkap }}{% if item.siswa.nama_panggilan %} <small class="text-muted">({{ item.siswa.nama_panggilan }})</small>{% endif %}</td>
+                        <td class="text-center">{% if item.net > 0 %}{% for i in range(item.net) %}⭐{% endfor %} <small class="text-muted">({{ item.net }})</small>{% elif item.net == 0 %}<span class="text-muted">—</span>{% else %}😐{% endif %}</td>
                     </tr>
                     {% endfor %}
                 </tbody>

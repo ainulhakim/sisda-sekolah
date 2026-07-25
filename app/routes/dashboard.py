@@ -20,6 +20,8 @@ def dashboard():
         return admin_dashboard()
     elif current_user.role == 'guru':
         return guru_dashboard()
+    elif current_user.role == 'ortu':
+        return redirect(url_for('ortu.dashboard'))
     else:
         return siswa_dashboard()
 
@@ -40,9 +42,9 @@ def admin_dashboard():
         if d not in chart_data:
             chart_data[d] = {'hadir': 0, 'izin': 0, 'sakit': 0, 'alpa': 0, 'telat': 0}
         chart_data[d][s] = c
-
+    
     # Prestasi summary
-    from app.models import PrestasiLomba
+    from app.models import PrestasiLomba, Lomba
     ta = TahunAjaran.query.filter_by(is_active=True).first()
     total_prestasi = PrestasiLomba.query.count()
     prestasi_tahun = 0
@@ -50,7 +52,6 @@ def admin_dashboard():
     if ta:
         prestasi_tahun = db.session.query(PrestasiLomba).join(Lomba)\
             .filter(Lomba.tahun_ajaran_id == ta.id).count()
-        # Top performers: students with most Juara 1/2/3
         from sqlalchemy import func as sqlfunc
         top_performers = db.session.query(
             Siswa.nama_lengkap,
@@ -60,7 +61,7 @@ def admin_dashboard():
         .group_by(Siswa.nama_lengkap)\
         .order_by(sqlfunc.count(PrestasiLomba.id).desc())\
         .limit(5).all()
-    
+
     return render_template('dashboard/admin.html',
         total_siswa=total_siswa, total_guru=total_guru, total_kelas=total_kelas,
         chart_data=chart_data, today=today,

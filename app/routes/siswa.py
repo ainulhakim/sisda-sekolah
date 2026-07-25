@@ -103,11 +103,49 @@ def siswa_edit(id):
 @routes_bp.route('/siswa/<int:id>')
 @login_required
 def siswa_detail(id):
+    from datetime import date, timedelta
+    from app.models import SiswaBadge, Absensi, BintangHarian, PrestasiLomba
+
     s = Siswa.query.get_or_404(id)
-    from app.models import SiswaBadge, Absensi
     badges = SiswaBadge.query.filter_by(siswa_id=id).all()
     absensi = Absensi.query.filter_by(siswa_id=id).order_by(Absensi.tanggal.desc()).limit(30).all()
-    return render_template('siswa/detail.html', siswa=s, badges=badges, absensi=absensi)
+
+    # ── Bintang stats with period filter ──
+    periode = request.args.get('periode', 'harian')
+    today = date.today()
+
+    bq = BintangHarian.query.filter_by(siswa_id=id)
+    if periode == 'harian':
+        bq = bq.filter(BintangHarian.tanggal == today)
+    elif periode == 'pekanan':
+        start = today - timedelta(days=today.weekday())
+        bq = bq.filter(BintangHarian.tanggal >= start)
+    elif periode == 'bulanan':
+        start = today.replace(day=1)
+        bq = bq.filter(BintangHarian.tanggal >= start)
+    elif periode == 'semester':
+        start = today.replace(month=1, day=1) if today.month <= 6 else today.replace(month=7, day=1)
+        bq = bq.filter(BintangHarian.tanggal >= start)
+    elif periode == 'tahunan':
+        start = today.replace(month=1, day=1)
+        bq = bq.filter(BintangHarian.tanggal >= start)
+
+    bintang_count = bq.filter_by(jenis='bintang').count()
+    jempol_count = bq.filter_by(jenis='jempol').count()
+    net_bintang = bintang_count - jempol_count
+
+    # Recent bintang entries
+    bintang_recent = BintangHarian.query.filter_by(siswa_id=id).order_by(BintangHarian.tanggal.desc(), BintangHarian.id.desc()).limit(10).all()
+
+    # ── Prestasi ──
+    prestasi = PrestasiLomba.query.filter_by(siswa_id=id).order_by(PrestasiLomba.tanggal_dapat.desc()).all()
+
+    return render_template('siswa/detail.html',
+                         siswa=s, badges=badges, absensi=absensi,
+                         periode=periode,
+                         bintang_count=bintang_count, jempol_count=jempol_count, net_bintang=net_bintang,
+                         bintang_recent=bintang_recent,
+                         prestasi=prestasi)
 
 @routes_bp.route('/siswa/<int:id>/hapus', methods=['POST'])
 @login_required
