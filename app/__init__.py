@@ -20,6 +20,20 @@ def create_app():
     
     from app.routes import register_blueprints
     register_blueprints(app)
+
+    # ── Redirect: santrenkoding.ainulhakim.com → app.sdsantrenkoding.my.id ──
+    PRIMARY_DOMAIN = 'app.sdsantrenkoding.my.id'
+    OLD_DOMAIN = 'santrenkoding.ainulhakim.com'
+
+    @app.before_request
+    def redirect_old_domain():
+        from flask import request, redirect
+        host = request.host.split(':')[0]  # strip port
+        if host == OLD_DOMAIN:
+            url = request.url.replace(f'{OLD_DOMAIN}', PRIMARY_DOMAIN)
+            # Force HTTPS
+            url = url.replace('http://', 'https://')
+            return redirect(url, code=301)
     
     @app.context_processor
     def inject_sekolah():
