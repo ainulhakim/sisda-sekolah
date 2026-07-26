@@ -212,6 +212,8 @@ class SekolahConfig(db.Model):
     logo_path = db.Column(db.String(200), default='')
     visi = db.Column(db.Text, default='')
     misi = db.Column(db.Text, default='')
+    jam_masuk = db.Column(db.String(5), default='07:30')  # Format: HH:MM
+    jam_pulang = db.Column(db.String(5), default='15:00')  # Format: HH:MM
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

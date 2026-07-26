@@ -42,8 +42,11 @@ def check_badges(siswa_id):
                     break
             earned = streak >= badge.syarat_nilai
         elif badge.syarat_tipe == 'checkin_pagi':
+            from app.models import get_sekolah_config
+            config = get_sekolah_config()
+            batas_jam = config.jam_masuk if config and config.jam_masuk else '07:30'
             early_count = Absensi.query.filter_by(siswa_id=siswa_id).filter(
-                func.strftime('%H:%M', Absensi.check_in_time) < '07:00'
+                func.strftime('%H:%M', Absensi.check_in_time) < batas_jam
             ).count()
             earned = early_count >= badge.syarat_nilai
         elif badge.syarat_tipe == 'jumat_hadir':

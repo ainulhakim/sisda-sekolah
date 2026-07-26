@@ -306,6 +306,8 @@ def settings():
         sekolah.nip_kepala = request.form.get('nip_kepala', '').strip()
         sekolah.visi = request.form.get('visi', '').strip()
         sekolah.misi = request.form.get('misi', '').strip()
+        sekolah.jam_masuk = request.form.get('jam_masuk', '07:30').strip()
+        sekolah.jam_pulang = request.form.get('jam_pulang', '15:00').strip()
         sekolah.updated_at = utcnow_wib()
 
         # Handle logo upload

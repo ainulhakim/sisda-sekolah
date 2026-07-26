@@ -62,6 +62,19 @@
                     <label class="form-label fw-bold">Misi</label>
                     <textarea class="form-control" name="misi" rows="4" placeholder="Misi sekolah">{{ sekolah.misi if sekolah else '' }}</textarea>
                 </div>
+                <div class="col-md-12 mt-3">
+                    <hr>
+                    <h6 class="mb-3">⏰ Jam Operasional</h6>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Jam Masuk <small class="text-muted">(batas check-in pagi)</small></label>
+                    <input type="time" class="form-control" name="jam_masuk" value="{{ sekolah.jam_masuk if sekolah and sekolah.jam_masuk else '07:30' }}">
+                    <small class="text-muted">Siswa yang masuk sebelum jam ini mendapat badge 'Pagi Pagi'</small>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Jam Pulang</label>
+                    <input type="time" class="form-control" name="jam_pulang" value="{{ sekolah.jam_pulang if sekolah and sekolah.jam_pulang else '15:00' }}">
+                </div>
             </div>
         </div>
     </div>
