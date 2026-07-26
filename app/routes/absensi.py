@@ -43,8 +43,12 @@ def check_badges(siswa_id):
             earned = streak >= badge.syarat_nilai
         elif badge.syarat_tipe == 'checkin_pagi':
             from app.models import get_sekolah_config
+            from datetime import datetime as _dt, timedelta as _td
             config = get_sekolah_config()
-            batas_jam = config.jam_masuk if config and config.jam_masuk else '07:30'
+            jam_masuk_str = config.jam_masuk if config and config.jam_masuk else '07:30'
+            # Badge aktif 10 menit SEBELUM jam masuk
+            jam_masuk_dt = _dt.strptime(jam_masuk_str, '%H:%M')
+            batas_jam = (jam_masuk_dt - _td(minutes=10)).strftime('%H:%M')
             early_count = Absensi.query.filter_by(siswa_id=siswa_id).filter(
                 func.strftime('%H:%M', Absensi.check_in_time) < batas_jam
             ).count()
