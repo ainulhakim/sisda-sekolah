@@ -114,11 +114,26 @@ class Siswa(db.Model):
         from datetime import timedelta
         streak = 0
         today = date.today()
+        check_date = today
+        # Skip weekend (Sabtu=5, Minggu=6)
+        while check_date.weekday() >= 5:
+            check_date -= timedelta(days=1)
+        # Jika hari ini weekday tapi belum ada absensi, mulai dari kemarin
+        a_today = Absensi.query.filter_by(siswa_id=self.id, tanggal=check_date, status='hadir').first()
+        if not a_today:
+            check_date -= timedelta(days=1)
+            # Skip weekend lagi
+            while check_date.weekday() >= 5:
+                check_date -= timedelta(days=1)
+        # Hitung streak mundur
         for i in range(365):
-            check_date = today - timedelta(days=i)
             a = Absensi.query.filter_by(siswa_id=self.id, tanggal=check_date, status='hadir').first()
             if a:
                 streak += 1
+                check_date -= timedelta(days=1)
+                # Skip weekend
+                while check_date.weekday() >= 5:
+                    check_date -= timedelta(days=1)
             else:
                 break
         return streak
