@@ -5,7 +5,7 @@ from flask_login import login_required, current_user
 from app.routes import routes_bp
 from app.models import Absensi, Siswa, Kelas, Badge, SiswaBadge, TahunAjaran
 from app import db
-from sqlalchemy import func
+from sqlalchemy import func, desc as sa_desc
 
 def check_badges(siswa_id):
     """Check and award badges for a siswa."""
@@ -176,21 +176,34 @@ def absensi_leaderboard():
     kelas_id = request.args.get('kelas_id', type=int)
     ta = TahunAjaran.query.filter_by(is_active=True).first()
     
+    # Use subqueries to avoid cartesian product
+    from sqlalchemy import func as sa_func
+    
+    hadir_count = db.session.query(
+        Absensi.siswa_id,
+        sa_func.count(Absensi.id).label('cnt')
+    ).filter(Absensi.status == 'hadir').group_by(Absensi.siswa_id).subquery()
+    
+    badge_count = db.session.query(
+        SiswaBadge.siswa_id,
+        sa_func.count(SiswaBadge.id).label('cnt')
+    ).group_by(SiswaBadge.siswa_id).subquery()
+    
     query = db.session.query(
         Siswa.id, Siswa.nama_lengkap, Siswa.nama_panggilan, Kelas.nama_kelas,
-        func.count(Absensi.id).filter(Absensi.status == 'hadir').label('total_hadir'),
-        func.count(SiswaBadge.id).label('total_badge')
-    ).outerjoin(Absensi, (Absensi.siswa_id == Siswa.id) & (Absensi.status == 'hadir')
+        sa_func.coalesce(hadir_count.c.cnt, 0).label('total_hadir'),
+        sa_func.coalesce(badge_count.c.cnt, 0).label('total_badge')
+    ).outerjoin(hadir_count, hadir_count.c.siswa_id == Siswa.id
+    ).outerjoin(badge_count, badge_count.c.siswa_id == Siswa.id
     ).outerjoin(Kelas, Kelas.id == Siswa.kelas_id
-    ).outerjoin(SiswaBadge, SiswaBadge.siswa_id == Siswa.id)
+    ).filter(Siswa.status == 'aktif')
     
     if kelas_id:
         query = query.filter(Siswa.kelas_id == kelas_id)
     if ta:
         query = query.filter(Siswa.tahun_ajaran_id == ta.id)
     
-    results = query.group_by(Siswa.id, Siswa.nama_lengkap, Siswa.nama_panggilan, Kelas.nama_kelas
-    ).order_by(db.desc('total_hadir')).limit(10).all()
+    results = query.order_by(sa_desc('total_hadir')).limit(10).all()
     
     kelas_list = Kelas.query.all()
     return render_template('absensi/leaderboard.html', results=results, kelas_list=kelas_list, kelas_id=kelas_id)
