@@ -203,7 +203,7 @@ def absensi_leaderboard():
     if ta:
         query = query.filter(Siswa.tahun_ajaran_id == ta.id)
     
-    results = query.order_by(sa_desc('total_hadir')).limit(10).all()
+    results = query.order_by(sa_desc('total_hadir'), sa_desc('total_badge')).limit(10).all()
     
     kelas_list = Kelas.query.all()
     return render_template('absensi/leaderboard.html', results=results, kelas_list=kelas_list, kelas_id=kelas_id)
