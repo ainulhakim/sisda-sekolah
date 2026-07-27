@@ -138,10 +138,7 @@
     </div>
 </div>
 
-<!-- Success beep audio -->
-<audio id="beep-success" preload="auto">
-    <source src="data:audio/wav;base64,UklGRl4FAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YToFAAD///8AAP8AAP///wD///8AAP///wD///8AAP///wD///8AAP///wD///8AAHd3d/93d3f/d3d3/3d3d/93d3f/d3d3/3d3d/93d3f/d3d3/3d3d/8=" type="audio/wav">
-</audio>
+<!-- TTS greeting replaces old beep; audio played via JS fetch -->
 
 <!-- Success Popup Modal -->
 <div class="modal fade" id="successModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
@@ -234,13 +231,6 @@ function onScanSuccess(decodedText, decodedResult) {
     if (now - lastScanTime < SCAN_COOLDOWN) return;
     lastScanTime = now;
     
-    // Play beep
-    try {
-        const beep = document.getElementById('beep-success');
-        beep.currentTime = 0;
-        beep.play().catch(() => {});
-    } catch(e) {}
-    
     // Show processing state
     showResult('processing', 'Memproses...', decodedText);
     
@@ -260,6 +250,26 @@ function onScanSuccess(decodedText, decodedResult) {
             scanCount++;
             document.getElementById('scan-count').textContent = scanCount;
             addToHistory(data.siswa_name || decodedText, 'success');
+
+            // Play TTS voice greeting
+            if (data.siswa_name || data.nama_lengkap) {
+                fetch('/api/tts/greeting', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        nama_panggilan: data.siswa_name || data.nama_lengkap,
+                        kelas_nama: data.kelas_nama || '',
+                        waktu: data.check_in_time || new Date().toLocaleTimeString('id-ID')
+                    })
+                })
+                .then(r => r.blob())
+                .then(blob => {
+                    const url = URL.createObjectURL(blob);
+                    const audio = new Audio(url);
+                    audio.play().catch(() => {});
+                })
+                .catch(() => {});
+            }
         } else {
             showResult('error', data.message || 'Gagal memproses QR', decodedText);
             addToHistory(data.siswa_name || decodedText, 'error');

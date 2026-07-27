@@ -9,6 +9,8 @@ import os
 import json
 import hashlib
 import hmac
+import asyncio
+import edge_tts
 from datetime import date, datetime, timedelta, timezone
 
 import qrcode
@@ -174,6 +176,14 @@ def absen_qr():
     db.session.commit()
 
     # Re-use badge check from existing absensi module
+    # Get kelas name for TTS greeting
+    kelas_nama = ''
+    if siswa.kelas_id:
+        from app.models import Kelas
+        kelas = Kelas.query.get(siswa.kelas_id)
+        if kelas:
+            kelas_nama = kelas.nama_kelas
+
     try:
         from app.routes.absensi import check_badges
         check_badges(siswa_id)
@@ -188,6 +198,7 @@ def absen_qr():
         "nama_lengkap": siswa.nama_lengkap,
         "check_in_time": new_absen.check_in_time.strftime('%H:%M:%S') if new_absen.check_in_time else '',
         "status": "hadir",
+        "kelas_nama": kelas_nama,
     }), 201
 
 
@@ -403,3 +414,35 @@ def today_attendance():
         })
 
     return jsonify(result), 200
+
+# ---------------------------------------------------------------------------
+# Endpoint F: TTS Greeting (voice greeting for QR check-in)
+# ---------------------------------------------------------------------------
+
+@routes_bp.route('/api/tts/greeting', methods=['POST'])
+@csrf.exempt
+def tts_greeting():
+    """Generate and return a TTS voice greeting as MP3 audio."""
+    data = request.get_json(silent=True) or {}
+    nama = data.get('nama_panggilan', 'Siswa')
+    kelas = data.get('kelas_nama', '')
+    waktu = data.get('waktu', '')
+
+    text = f"Ahlan Wasahkan {nama} - {kelas} kamu masuk sekolah pukul {waktu}, Semangat Belajar yaa"
+
+    # Cache key based on text content
+    cache_key = hashlib.md5(text.encode()).hexdigest()
+    cache_dir = os.path.join(os.path.dirname(__file__), '..', 'static', 'audio_cache')
+    os.makedirs(cache_dir, exist_ok=True)
+    cache_path = os.path.join(cache_dir, f'{cache_key}.mp3')
+
+    if not os.path.exists(cache_path):
+        async def generate():
+            communicate = edge_tts.Communicate(text, 'id-ID-ArdiNeural')
+            await communicate.save(cache_path)
+        asyncio.run(generate())
+
+    with open(cache_path, 'rb') as f:
+        audio_data = f.read()
+
+    return Response(audio_data, mimetype='audio/mpeg', headers={'Cache-Control': 'max-age=86400'})
