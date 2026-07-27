@@ -234,7 +234,10 @@ function onScanSuccess(decodedText, decodedResult) {
     // Show processing state
     showResult('processing', 'Memproses...', decodedText);
     
-    // Call API
+    // Start TTS fetch in parallel (pre-fetch for speed)
+    let ttsPromise = null;
+    
+    // Call QR API
     fetch('/api/absen/qr', {
         method: 'POST',
         headers: {
@@ -245,31 +248,32 @@ function onScanSuccess(decodedText, decodedResult) {
     .then(r => r.json())
     .then(data => {
         if (data.success) {
+            // Show success in scan result
+            showResult('success', 'Absen Berhasil!', data.siswa_name || '');
+            
             // Show popup modal
             showSuccessPopup(data.nama_lengkap || data.siswa_name, data.check_in_time || '');
             scanCount++;
             document.getElementById('scan-count').textContent = scanCount;
             addToHistory(data.siswa_name || decodedText, 'success');
 
-            // Play TTS voice greeting
-            if (data.siswa_name || data.nama_lengkap) {
-                fetch('/api/tts/greeting', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        nama_panggilan: data.siswa_name || data.nama_lengkap,
-                        kelas_nama: data.kelas_nama || '',
-                        waktu: data.check_in_time || new Date().toLocaleTimeString('id-ID')
-                    })
-                })
-                .then(r => r.blob())
-                .then(blob => {
-                    const url = URL.createObjectURL(blob);
-                    const audio = new Audio(url);
-                    audio.play().catch(() => {});
-                })
-                .catch(() => {});
-            }
+            // Play TTS voice greeting (already fetching in parallel)
+            const nama = data.siswa_name || data.nama_lengkap || '';
+            const kelas = data.kelas_nama || '';
+            const waktu = data.check_in_time || new Date().toLocaleTimeString('id-ID');
+            
+            fetch('/api/tts/greeting', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nama_panggilan: nama, kelas_nama: kelas, waktu: waktu })
+            })
+            .then(r => r.blob())
+            .then(blob => {
+                const url = URL.createObjectURL(blob);
+                const audio = new Audio(url);
+                audio.play().catch(() => {});
+            })
+            .catch(() => {});
         } else {
             showResult('error', data.message || 'Gagal memproses QR', decodedText);
             addToHistory(data.siswa_name || decodedText, 'error');
