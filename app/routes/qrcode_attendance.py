@@ -428,7 +428,15 @@ def tts_greeting():
     kelas = data.get('kelas_nama', '')
     waktu = data.get('waktu', '')
 
-    text = f"Ahlan Wasahkan {nama} - {kelas} kamu masuk sekolah pukul {waktu}, Semangat Belajar yaa"
+    # Get school name from config
+    try:
+        from app.models import get_sekolah_config
+        config = get_sekolah_config()
+        nama_sekolah = config.nama_sekolah if config and config.nama_sekolah else 'Sekolah'
+    except Exception:
+        nama_sekolah = 'Sekolah'
+
+    text = f"Ahlan Wasahlan {nama}, kelas {kelas}. Kamu masuk sekolah {nama_sekolah}, pukul {waktu}. Semangat Belajar ya, raih prestasi!"
 
     # Cache key based on text content
     cache_key = hashlib.md5(text.encode()).hexdigest()
@@ -438,7 +446,7 @@ def tts_greeting():
 
     if not os.path.exists(cache_path):
         async def generate():
-            communicate = edge_tts.Communicate(text, 'id-ID-ArdiNeural')
+            communicate = edge_tts.Communicate(text, 'id-ID-ArdiNeural', rate='-25%')
             await communicate.save(cache_path)
         asyncio.run(generate())
 
