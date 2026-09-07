@@ -1,0 +1,548 @@
+{% extends "base.html" %}
+{% block title %}Enrollment Wajah{% endblock %}
+{% block content %}
+<style>
+    .enroll-card {
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 2px solid transparent !important;
+    }
+    .enroll-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
+    }
+    .enroll-card.enrolled {
+        border-color: var(--success) !important;
+    }
+    .enroll-status {
+        width: 50px; height: 50px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.5rem;
+    }
+    #enroll-video-container {
+        position: relative;
+        border: 3px solid var(--primary);
+        border-radius: 16px;
+        overflow: hidden;
+        background: #000;
+    }
+    #enroll-video {
+        width: 100%;
+        display: block;
+        border-radius: 13px;
+        transform: scaleX(-1);
+    }
+    #enroll-canvas {
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        border-radius: 13px;
+        pointer-events: none;
+    }
+    .enroll-guide {
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        width: 180px; height: 220px;
+        border: 2px dashed rgba(74, 144, 217, 0.5);
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 10;
+    }
+    .enroll-count-badge {
+        font-size: 1.2rem;
+        font-weight: 700;
+    }
+</style>
+
+<h4 class="mb-4"><i class="fas fa-user-plus me-2"></i>Enrollment Wajah Siswa</h4>
+
+<!-- Stats -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row text-center">
+            <div class="col-4">
+                <small class="text-muted d-block">Total Siswa</small>
+                <strong class="enroll-count-badge text-primary" id="total-students">{{ students|length }}</strong>
+            </div>
+            <div class="col-4">
+                <small class="text-muted d-block">Sudah Daftar</small>
+                <strong class="enroll-count-badge text-success" id="enrolled-count">0</strong>
+            </div>
+            <div class="col-4">
+                <small class="text-muted d-block">Belum Daftar</small>
+                <strong class="enroll-count-badge text-warning" id="not-enrolled-count">0</strong>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-search"></i></span>
+            <input type="text" class="form-control" id="search-student" placeholder="Cari nama siswa..." oninput="filterStudents()">
+        </div>
+    </div>
+</div>
+
+<!-- Student Grid -->
+<div class="row g-3" id="student-grid">
+    {% for s in students %}
+    <div class="col-6 col-md-4 col-lg-3 student-item" data-id="{{ s.id }}" data-name="{{ (s.nama_panggilan or s.nama_lengkap)|lower }}">
+        <div class="card border-0 shadow-sm enroll-card {% if s.face_enrolled %}enrolled{% endif %}" onclick="openEnrollModal({{ s.id }}, '{{ s.nama_panggilan or s.nama_lengkap }}')">
+            <div class="card-body text-center p-3">
+                <div class="enroll-status mx-auto mb-2 {% if s.face_enrolled %}bg-success text-white{% else %}bg-light text-muted{% endif %}">
+                    {% if s.face_enrolled %}✅{% else %}📷{% endif %}
+                </div>
+                <h6 class="mb-1">{{ s.nama_panggilan or s.nama_lengkap }}</h6>
+                <small class="text-muted d-block mb-1">{{ s.nisn or '-' }}</small>
+                <span class="badge {% if s.face_enrolled %}bg-success{% else %}bg-secondary{% endif %}">
+                    {% if s.face_enrolled %}Sudah Daftar{% else %}Belum Daftar{% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Enrollment Modal -->
+<div class="modal fade" id="enrollModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-camera me-2"></i>Enrollment Wajah</h5>
+                <button type="button" class="btn-close btn-close-white" onclick="closeEnrollModal()"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <h5 id="enroll-student-name">Nama Siswa</h5>
+                    <p class="text-muted mb-0" id="enroll-student-info">ID: -</p>
+                </div>
+
+                <div class="row">
+                    <!-- Camera -->
+                    <div class="col-md-7 mb-3">
+                        <div id="enroll-video-container" class="mx-auto" style="max-width: 400px;">
+                            <video id="enroll-video" autoplay muted playsinline></video>
+                            <canvas id="enroll-canvas"></canvas>
+                            <div class="enroll-guide" id="enroll-guide"></div>
+                        </div>
+                    </div>
+                    <!-- Controls & Status -->
+                    <div class="col-md-5">
+                        <div class="card border-0 bg-light mb-3">
+                            <div class="card-body text-center">
+                                <div class="mb-2">
+                                    <span class="badge bg-info" id="enroll-status-badge">Siap</span>
+                                </div>
+                                <p class="text-muted small mb-3" id="enroll-instructions">
+                                    Klik "Mulai Kamera" lalu arahkan wajah ke dalam lingkaran, lalu klik "Ambil Foto"
+                                </p>
+                                <div id="enroll-feedback" class="d-none mb-3"></div>
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-primary" id="btn-enroll-start" onclick="startEnrollCamera()">
+                                        <i class="fas fa-camera me-2"></i>Mulai Kamera
+                                    </button>
+                                    <button class="btn btn-success d-none" id="btn-enroll-capture" onclick="captureEnrollFace()">
+                                        <i class="fas fa-camera-retro me-2"></i>Ambil Foto
+                                    </button>
+                                    <button class="btn btn-danger d-none" id="btn-enroll-stop" onclick="stopEnrollCamera()">
+                                        <i class="fas fa-stop me-2"></i>Stop Kamera
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Preview -->
+                        <div class="d-none" id="enroll-preview-section">
+                            <p class="text-center text-muted small mb-2">Foto yang diambil:</p>
+                            <div class="text-center mb-3">
+                                <img id="enroll-preview-img" src="" alt="Preview" class="img-fluid rounded" style="max-height: 150px; transform: scaleX(-1);">
+                            </div>
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-success" id="btn-enroll-submit" onclick="submitEnrollment()">
+                                    <i class="fas fa-save me-2"></i>Simpan Enrollment
+                                </button>
+                                <button class="btn btn-outline-secondary" onclick="retakeEnrollPhoto()">
+                                    <i class="fas fa-redo me-2"></i>Ambil Ulang
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<script>
+// --- State ---
+let enrollVideo = null;
+let enrollCanvas = null;
+let enrollStream = null;
+let enrollModelsLoaded = false;
+let currentEnrollStudent = null;
+let capturedEmbedding = null;
+let capturedImageBlob = null;
+
+// --- Init ---
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        // face-api.js bundles its own TF.js — do NOT load separate @tensorflow/tfjs
+        console.log('Initializing face-api.js backend...');
+        const backends = ['webgl', 'cpu'];
+        let backendReady = false;
+        for (const b of backends) {
+            try {
+                await faceapi.tf.setBackend(b);
+                await faceapi.tf.ready();
+                console.log('Face-api backend:', faceapi.tf.getBackend());
+                backendReady = true;
+                break;
+            } catch (e) {
+                console.warn('Backend', b, 'failed:', e.message);
+            }
+        }
+        if (!backendReady) throw new Error('No usable backend found');
+
+        console.log('Loading face-api models...');
+        await faceapi.nets.tinyFaceDetector.loadFromUri('/static/models/face-api/');
+        console.log('tinyFaceDetector loaded');
+        await faceapi.nets.faceLandmark68Net.loadFromUri('/static/models/face-api/');
+        console.log('faceLandmark68Net loaded');
+        await faceapi.nets.faceRecognitionNet.loadFromUri('/static/models/face-api/');
+        console.log('faceRecognitionNet loaded');
+        
+        enrollModelsLoaded = true;
+        console.log('All face enrollment models loaded successfully');
+        
+        // Update status badge
+        document.getElementById('enroll-status-badge').textContent = '✅ Model Siap';
+        document.getElementById('enroll-status-badge').className = 'badge bg-success';
+    } catch (err) {
+        console.error('Failed to load face models:', err);
+        document.getElementById('enroll-status-badge').textContent = '❌ Error Model';
+        document.getElementById('enroll-status-badge').className = 'badge bg-danger';
+    }
+
+    // Update stats
+    updateEnrollStats();
+});
+
+function updateEnrollStats() {
+    const enrolled = document.querySelectorAll('.enroll-card.enrolled').length;
+    const total = document.querySelectorAll('.student-item').length;
+    document.getElementById('enrolled-count').textContent = enrolled;
+    document.getElementById('not-enrolled-count').textContent = total - enrolled;
+}
+
+// --- Search ---
+function filterStudents() {
+    const query = document.getElementById('search-student').value.toLowerCase();
+    document.querySelectorAll('.student-item').forEach(item => {
+        const name = item.dataset.name;
+        item.style.display = name.includes(query) ? '' : 'none';
+    });
+}
+
+// --- Open Enrollment Modal ---
+async function openEnrollModal(siswaId, nama) {
+    if (!enrollModelsLoaded) {
+        alert('Model AI belum siap. Silakan tunggu sebentar.');
+        return;
+    }
+
+    currentEnrollStudent = { id: siswaId, nama: nama };
+    document.getElementById('enroll-student-name').textContent = nama;
+    document.getElementById('enroll-student-info').textContent = `ID: ${siswaId}`;
+    document.getElementById('enroll-feedback').classList.add('d-none');
+
+    // Reset UI
+    document.getElementById('btn-enroll-start').classList.remove('d-none');
+    document.getElementById('btn-enroll-capture').classList.add('d-none');
+    document.getElementById('btn-enroll-stop').classList.add('d-none');
+    document.getElementById('enroll-preview-section').classList.add('d-none');
+    document.getElementById('enroll-status-badge').textContent = 'Siap';
+    document.getElementById('enroll-status-badge').className = 'badge bg-info';
+    document.getElementById('enroll-instructions').textContent = 'Klik "Mulai Kamera" lalu arahkan wajah ke dalam lingkaran, lalu klik "Ambil Foto"';
+
+    const modal = new bootstrap.Modal(document.getElementById('enrollModal'));
+    modal.show();
+}
+
+function closeEnrollModal() {
+    stopEnrollCamera();
+    currentEnrollStudent = null;
+    capturedEmbedding = null;
+    const modal = bootstrap.Modal.getInstance(document.getElementById('enrollModal'));
+    if (modal) modal.hide();
+}
+
+// --- Start Camera ---
+async function startEnrollCamera() {
+    try {
+        enrollVideo = document.getElementById('enroll-video');
+        enrollCanvas = document.getElementById('enroll-canvas');
+
+        enrollStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+        });
+        enrollVideo.srcObject = enrollStream;
+
+        await new Promise(resolve => {
+            enrollVideo.onloadedmetadata = () => {
+                enrollCanvas.width = enrollVideo.videoWidth;
+                enrollCanvas.height = enrollVideo.videoHeight;
+                resolve();
+            };
+        });
+
+        document.getElementById('btn-enroll-start').classList.add('d-none');
+        document.getElementById('btn-enroll-capture').classList.remove('d-none');
+        document.getElementById('btn-enroll-stop').classList.remove('d-none');
+        document.getElementById('enroll-guide').style.display = 'block';
+        document.getElementById('enroll-status-badge').textContent = 'Kamera Aktif';
+        document.getElementById('enroll-status-badge').className = 'badge bg-success';
+        document.getElementById('enroll-instructions').textContent = 'Pastikan wajah terlihat jelas di dalam lingkaran, lalu klik "Ambil Foto"';
+
+        // Draw guide overlay continuously
+        drawEnrollGuide();
+    } catch (err) {
+        console.error('Camera error:', err);
+        document.getElementById('enroll-status-badge').textContent = 'Error Kamera';
+        document.getElementById('enroll-status-badge').className = 'badge bg-danger';
+    }
+}
+
+function drawEnrollGuide() {
+    if (!enrollVideo || !enrollCanvas) return;
+    const ctx = enrollCanvas.getContext('2d');
+    ctx.clearRect(0, 0, enrollCanvas.width, enrollCanvas.height);
+
+    // Draw mirrored circle guide on canvas
+    const cx = enrollCanvas.width / 2;
+    const cy = enrollCanvas.height / 2;
+    const rx = 90;
+    const ry = 110;
+
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx, ry, 0, 0, 2 * Math.PI);
+    ctx.strokeStyle = 'rgba(74, 144, 217, 0.6)';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([10, 5]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Dim outside the ellipse
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+    ctx.rect(0, 0, enrollCanvas.width, enrollCanvas.height);
+    ctx.fill('evenodd');
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx, ry, 0, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+}
+
+function stopEnrollCamera() {
+    if (enrollStream) {
+        enrollStream.getTracks().forEach(t => t.stop());
+        enrollStream = null;
+    }
+    if (enrollVideo) enrollVideo.srcObject = null;
+    if (enrollCanvas) {
+        const ctx = enrollCanvas.getContext('2d');
+        ctx.clearRect(0, 0, enrollCanvas.width, enrollCanvas.height);
+    }
+    document.getElementById('enroll-guide').style.display = 'none';
+    document.getElementById('btn-enroll-start').classList.remove('d-none');
+    document.getElementById('btn-enroll-capture').classList.add('d-none');
+    document.getElementById('btn-enroll-stop').classList.add('d-none');
+}
+
+// --- Capture Face ---
+async function captureEnrollFace() {
+    if (!enrollVideo || !enrollModelsLoaded) {
+        console.error('captureEnrollFace: video or models not ready');
+        return;
+    }
+
+    document.getElementById('enroll-status-badge').textContent = 'Mendeteksi...';
+    document.getElementById('enroll-status-badge').className = 'badge bg-warning';
+    document.getElementById('btn-enroll-capture').disabled = true;
+    document.getElementById('btn-enroll-capture').innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Memproses...';
+
+    try {
+        console.log('Starting face detection...');
+        console.log('Video dimensions:', enrollVideo.videoWidth, 'x', enrollVideo.videoHeight);
+        console.log('Face-api backend:', faceapi.tf.getBackend());
+
+        // Try detection with smaller input size first (faster)
+        let detection = null;
+        const inputSizes = [160, 320, 416];
+        const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+        const timeoutMs = isMobile ? 10000 : 5000;
+        
+        for (const inputSize of inputSizes) {
+            console.log('Trying detection with inputSize:', inputSize);
+            
+            const options = new faceapi.TinyFaceDetectorOptions({inputSize: inputSize, scoreThreshold: 0.3});
+            const detectionPromise = faceapi.detectSingleFace(enrollVideo, options)
+                .withFaceLandmarks()
+                .withFaceDescriptor();
+
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('Timeout')), timeoutMs);
+            });
+
+            try {
+                detection = await Promise.race([detectionPromise, timeoutPromise]);
+                if (detection) {
+                    console.log('Face detected with inputSize:', inputSize);
+                    break;
+                }
+            } catch (e) {
+                console.log('Detection failed with inputSize:', inputSize, e.message);
+                continue;
+            }
+        }
+
+        if (!detection) {
+            document.getElementById('enroll-status-badge').textContent = 'Wajah Tidak Terdeteksi';
+            document.getElementById('enroll-status-badge').className = 'badge bg-danger';
+            document.getElementById('enroll-feedback').classList.remove('d-none');
+            document.getElementById('enroll-feedback').innerHTML = '<div class="alert alert-warning py-2 mb-0">⚠️ Wajah tidak terdeteksi. Pastikan wajah terlihat jelas di dalam lingkaran.</div>';
+            document.getElementById('btn-enroll-capture').disabled = false;
+            document.getElementById('btn-enroll-capture').innerHTML = '<i class="fas fa-camera-retro me-2"></i>Ambil Foto';
+            return;
+        }
+
+        // Store embedding
+        capturedEmbedding = Array.from(detection.descriptor);
+        console.log('Embedding captured, length:', capturedEmbedding.length);
+
+        // Capture preview image
+        const previewCanvas = document.createElement('canvas');
+        previewCanvas.width = enrollVideo.videoWidth;
+        previewCanvas.height = enrollVideo.videoHeight;
+        const previewCtx = previewCanvas.getContext('2d');
+        previewCtx.drawImage(enrollVideo, 0, 0);
+
+        // Draw detection box on preview
+        const box = detection.detection.box;
+        const mirroredX = previewCanvas.width - box.x - box.width;
+        previewCtx.strokeStyle = '#4A90D9';
+        previewCtx.lineWidth = 3;
+        previewCtx.strokeRect(mirroredX, box.y, box.width, box.height);
+
+        const dataUrl = previewCanvas.toDataURL('image/jpeg', 0.8);
+        document.getElementById('enroll-preview-img').src = dataUrl;
+
+        // Show preview section WITH SIMPAN BUTTON
+        document.getElementById('enroll-preview-section').classList.remove('d-none');
+        document.getElementById('enroll-status-badge').textContent = '✅ Siap Disimpan';
+        document.getElementById('enroll-status-badge').className = 'badge bg-success';
+        document.getElementById('enroll-instructions').textContent = 'Foto berhasil diambil! Klik "Simpan Enrollment" untuk menyimpan.';
+        document.getElementById('btn-enroll-capture').classList.add('d-none');
+        document.getElementById('btn-enroll-stop').classList.add('d-none');
+
+        console.log('Preview shown, simpan button visible');
+    } catch (err) {
+        console.error('Capture error:', err);
+        document.getElementById('enroll-status-badge').textContent = 'Error: ' + err.message;
+        document.getElementById('enroll-status-badge').className = 'badge bg-danger';
+        document.getElementById('enroll-feedback').classList.remove('d-none');
+        document.getElementById('enroll-feedback').innerHTML = `<div class="alert alert-danger py-2 mb-0">❌ Error: ${err.message}. Coba lagi.</div>`;
+    }
+
+    document.getElementById('btn-enroll-capture').disabled = false;
+    document.getElementById('btn-enroll-capture').innerHTML = '<i class="fas fa-camera-retro me-2"></i>Ambil Foto';
+}
+
+function retakeEnrollPhoto() {
+    capturedEmbedding = null;
+    document.getElementById('enroll-preview-section').classList.add('d-none');
+    document.getElementById('btn-enroll-capture').classList.remove('d-none');
+    document.getElementById('btn-enroll-stop').classList.remove('d-none');
+    document.getElementById('enroll-status-badge').textContent = 'Kamera Aktif';
+    document.getElementById('enroll-status-badge').className = 'badge bg-success';
+    document.getElementById('enroll-instructions').textContent = 'Pastikan wajah terlihat jelas di dalam lingkaran, lalu klik "Ambil Foto"';
+
+    // Restart camera if needed
+    if (!enrollStream) startEnrollCamera();
+}
+
+// --- Submit Enrollment ---
+async function submitEnrollment() {
+    if (!capturedEmbedding || !currentEnrollStudent) {
+        console.error('submitEnrollment: missing data', { capturedEmbedding: !!capturedEmbedding, currentEnrollStudent });
+        document.getElementById('enroll-feedback').classList.remove('d-none');
+        document.getElementById('enroll-feedback').innerHTML = '<div class="alert alert-danger py-2 mb-0">Data tidak lengkap. Silakan ambil foto ulang.</div>';
+        return;
+    }
+
+    document.getElementById('btn-enroll-submit').disabled = true;
+    document.getElementById('btn-enroll-submit').innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...';
+
+    try {
+        const payload = {
+            siswa_id: currentEnrollStudent.id,
+            embedding: capturedEmbedding
+        };
+        console.log('Submitting enrollment:', { siswa_id: payload.siswa_id, embedding_len: payload.embedding.length });
+
+        const resp = await fetch('/api/face/enroll', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        console.log('Response status:', resp.status);
+        const data = await resp.json();
+        console.log('Response data:', data);
+
+        if (data.success) {
+            // Update card in grid
+            const card = document.querySelector(`.student-item[data-id="${currentEnrollStudent.id}"] .enroll-card`);
+            if (card && !card.classList.contains('enrolled')) {
+                card.classList.add('enrolled');
+                card.querySelector('.enroll-status').className = 'enroll-status mx-auto mb-2 bg-success text-white';
+                card.querySelector('.enroll-status').textContent = '✅';
+                const badge = card.querySelector('.badge');
+                badge.className = 'badge bg-success';
+                badge.textContent = 'Sudah Daftar';
+            }
+
+            updateEnrollStats();
+
+            // Show success
+            document.getElementById('enroll-feedback').classList.remove('d-none');
+            document.getElementById('enroll-feedback').innerHTML = `
+                <div class="alert alert-success py-2 mb-0">
+                    <i class="fas fa-check-circle me-1"></i>${data.message || 'Enrollment berhasil!'}
+                </div>`;
+            document.getElementById('enroll-status-badge').textContent = 'Berhasil!';
+            document.getElementById('enroll-status-badge').className = 'badge bg-success';
+            document.getElementById('enroll-instructions').textContent = 'Enrollment berhasil disimpan.';
+
+            // Close after 2 seconds
+            setTimeout(closeEnrollModal, 2000);
+        } else {
+            document.getElementById('enroll-feedback').classList.remove('d-none');
+            document.getElementById('enroll-feedback').innerHTML = `<div class="alert alert-danger py-2 mb-0">${data.message || 'Gagal menyimpan'}</div>`;
+        }
+    } catch (err) {
+        document.getElementById('enroll-feedback').classList.remove('d-none');
+        document.getElementById('enroll-feedback').innerHTML = `<div class="alert alert-danger py-2 mb-0">Gagal menghubungi server: ${err.message}</div>`;
+    }
+
+    document.getElementById('btn-enroll-submit').disabled = false;
+    document.getElementById('btn-enroll-submit').innerHTML = '<i class="fas fa-save me-2"></i>Simpan Enrollment';
+}
+</script>
+{% endblock %}

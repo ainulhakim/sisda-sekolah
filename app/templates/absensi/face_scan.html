@@ -1,0 +1,538 @@
+{% extends "base.html" %}
+{% block title %}Face Recognition Absensi{% endblock %}
+{% block content %}
+<style>
+    #face-video-container {
+        position: relative;
+        border: 3px solid var(--primary);
+        border-radius: 16px;
+        overflow: hidden;
+        max-width: 500px;
+        margin: 0 auto;
+        background: #000;
+    }
+    #face-video {
+        width: 100%;
+        display: block;
+        border-radius: 13px;
+        transform: scaleX(-1);
+    }
+    #face-canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border-radius: 13px;
+        pointer-events: none;
+    }
+    .face-overlay-guide {
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        width: 200px; height: 250px;
+        border: 2px dashed rgba(74, 144, 217, 0.5);
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 10;
+    }
+    .face-scan-result {
+        transition: all 0.3s ease;
+        min-height: 80px;
+    }
+    .face-scan-result.show {
+        animation: fadeInUp 0.4s ease;
+    }
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(15px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .face-pulse-ring {
+        animation: facePulse 2s infinite;
+    }
+    @keyframes facePulse {
+        0% { box-shadow: 0 0 0 0 rgba(74, 144, 217, 0.4); }
+        70% { box-shadow: 0 0 0 15px rgba(74, 144, 217, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(74, 144, 217, 0); }
+    }
+    .face-count-badge {
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+    .model-loading {
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        z-index: 20;
+    }
+</style>
+
+<div class="row g-4">
+    <!-- Left: Face Scanner -->
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-face-smile me-2"></i>Face Recognition</h5>
+                <span class="badge bg-primary" id="face-status">Memuat Model...</span>
+            </div>
+            <div class="card-body text-center">
+                <div class="face-pulse-ring mb-3">
+                    <div id="face-video-container">
+                        <video id="face-video" autoplay muted playsinline></video>
+                        <canvas id="face-canvas"></canvas>
+                        <div class="face-overlay-guide" id="face-guide"></div>
+                        <div class="model-loading" id="model-loading">
+                            <div class="spinner-border text-primary mb-2" role="status"></div>
+                            <p class="text-white mb-0 small">Memuat AI Model...</p>
+                        </div>
+                    </div>
+                </div>
+                <div id="face-controls">
+                    <button class="btn btn-primary btn-lg" id="btn-face-start" onclick="startFaceScan()" disabled>
+                        <i class="fas fa-camera me-2"></i>Mulai Kamera
+                    </button>
+                    <button class="btn btn-danger btn-lg d-none" id="btn-face-stop" onclick="stopFaceScan()">
+                        <i class="fas fa-stop me-2"></i>Stop
+                    </button>
+                    <button class="btn btn-outline-secondary btn-lg d-none" id="btn-face-switch" onclick="switchFaceCamera()">
+                        <i class="fas fa-sync-alt me-2"></i>Ganti Kamera
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Info & Results -->
+    <div class="col-lg-5">
+        <!-- DateTime & Stats -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <small class="text-muted d-block">Tanggal Hari Ini</small>
+                        <strong id="current-date">{{ today.strftime('%d %B %Y') }}</strong>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted d-block">Waktu Sekarang</small>
+                        <strong id="current-time"></strong>
+                    </div>
+                </div>
+                <hr>
+                <div class="text-center">
+                    <small class="text-muted d-block mb-1">Total Absen Hari Ini</small>
+                    <span class="face-count-badge text-primary" id="face-count">{{ scan_count }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scan Result -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Hasil Deteksi Terakhir</h6>
+            </div>
+            <div class="card-body">
+                <div class="face-scan-result text-center" id="face-result">
+                    <div class="text-muted py-3">
+                        <i class="fas fa-face-smile fa-3x mb-3 d-block opacity-25"></i>
+                        <p>Arahkan wajah ke kamera</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Scans -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="fas fa-history me-2"></i>Riwayat Absen</h6>
+            </div>
+            <div class="card-body p-0">
+                <div id="face-history" class="list-group list-group-flush">
+                    <div class="list-group-item text-center text-muted py-3">
+                        <small>Belum ada absen hari ini</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Popup Modal -->
+<div class="modal fade" id="faceSuccessModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
+            <div class="modal-body text-center py-5" style="background: linear-gradient(135deg, #27AE60, #2ECC71);">
+                <div class="mb-3">
+                    <span style="font-size: 5rem;">✅</span>
+                </div>
+                <h3 class="text-white fw-bold mb-2" id="popup-face-nama">Nama Siswa</h3>
+                <p class="text-white-50 mb-3" style="font-size: 1.1rem;">Berhasil Absen Hari Ini</p>
+                <div class="bg-white bg-opacity-25 rounded-pill d-inline-block px-4 py-2">
+                    <span class="text-white fw-bold" style="font-size: 1.3rem;">
+                        🕐 <span id="popup-face-jam">00:00:00</span>
+                    </span>
+                </div>
+                <div class="mt-4">
+                    <div class="progress" style="height: 6px; background: rgba(255,255,255,0.3);">
+                        <div class="progress-bar bg-white" id="popup-face-progress" style="width: 100%; transition: width 3s linear;"></div>
+                    </div>
+                    <small class="text-white-50 mt-2 d-block">Menutup otomatis...</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<script>
+// --- State ---
+let faceVideo = null;
+let faceCanvas = null;
+let faceStream = null;
+let faceScanning = false;
+let faceCurrentFacing = 'user'; // default: front camera for face scan
+let faceScanCount = {{ scan_count }};
+let faceScanHistory = [];
+let modelsLoaded = false;
+let faceDetectionInterval = null;
+
+const SCAN_COOLDOWN = 4000; // 4 seconds cooldown
+let lastFaceScanTime = 0;
+let faceScanPaused = false;
+const SCAN_PAUSE_MS = 8000; // pause 8s after successful scan
+
+// --- Clock ---
+function updateClock() {
+    const now = new Date();
+    document.getElementById('current-time').textContent = now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// --- Load Models ---
+async function loadFaceModels() {
+    try {
+        // Initialize face-api.js backend (it bundles its own TF.js)
+        console.log('Initializing face-api.js backend...');
+        const backends = ['webgl', 'cpu'];
+        for (const b of backends) {
+            try {
+                await faceapi.tf.setBackend(b);
+                await faceapi.tf.ready();
+                console.log('Face-api backend:', faceapi.tf.getBackend());
+                break;
+            } catch (e) {
+                console.warn('Backend', b, 'failed:', e.message);
+            }
+        }
+
+        await faceapi.nets.tinyFaceDetector.loadFromUri('/static/models/face-api/');
+        await faceapi.nets.faceLandmark68Net.loadFromUri('/static/models/face-api/');
+        await faceapi.nets.faceRecognitionNet.loadFromUri('/static/models/face-api/');
+        modelsLoaded = true;
+        document.getElementById('model-loading').classList.add('d-none');
+        document.getElementById('face-status').textContent = 'Siap';
+        document.getElementById('face-status').className = 'badge bg-success';
+        document.getElementById('btn-face-start').disabled = false;
+        console.log('Face API models loaded successfully');
+    } catch (err) {
+        console.error('Failed to load face models:', err);
+        document.getElementById('face-status').textContent = 'Error Model';
+        document.getElementById('face-status').className = 'badge bg-danger';
+        document.getElementById('model-loading').innerHTML =
+            '<div class="text-danger"><i class="fas fa-exclamation-triangle fa-2x mb-2"></i><p class="text-white small mb-0">Gagal memuat model AI</p></div>';
+    }
+}
+
+// --- Start Camera ---
+async function startFaceScan() {
+    if (faceScanning || !modelsLoaded) return;
+
+    try {
+        faceVideo = document.getElementById('face-video');
+        faceCanvas = document.getElementById('face-canvas');
+
+        const constraints = {
+            video: {
+                facingMode: faceCurrentFacing,
+                width: { ideal: 640 },
+                height: { ideal: 480 }
+            }
+        };
+        faceStream = await navigator.mediaDevices.getUserMedia(constraints);
+        faceVideo.srcObject = faceStream;
+
+        await new Promise(resolve => {
+            faceVideo.onloadedmetadata = () => {
+                faceCanvas.width = faceVideo.videoWidth;
+                faceCanvas.height = faceVideo.videoHeight;
+                resolve();
+            };
+        });
+
+        faceScanning = true;
+        document.getElementById('btn-face-start').classList.add('d-none');
+        document.getElementById('btn-face-stop').classList.remove('d-none');
+        document.getElementById('btn-face-switch').classList.remove('d-none');
+        document.getElementById('face-status').textContent = 'Aktif - Arahkan Wajah';
+        document.getElementById('face-status').className = 'badge bg-success';
+        updateFaceSwitchLabel();
+        document.getElementById('face-guide').style.display = 'block';
+
+        // Start detection loop
+        faceDetectionInterval = setInterval(detectAndRecognize, 500); // every 500ms
+    } catch (err) {
+        console.error('Camera error:', err);
+        showFaceResult('error', 'Gagal mengakses kamera', 'Pastikan izin kamera diberikan');
+        document.getElementById('face-status').textContent = 'Kamera Error';
+        document.getElementById('face-status').className = 'badge bg-danger';
+    }
+}
+
+// --- Stop Camera ---
+function stopFaceScan() {
+    if (!faceScanning) return;
+
+    if (faceDetectionInterval) {
+        clearInterval(faceDetectionInterval);
+        faceDetectionInterval = null;
+    }
+
+    if (faceStream) {
+        faceStream.getTracks().forEach(track => track.stop());
+        faceStream = null;
+    }
+
+    if (faceVideo) {
+        faceVideo.srcObject = null;
+    }
+
+    // Clear canvas
+    const ctx = faceCanvas.getContext('2d');
+    ctx.clearRect(0, 0, faceCanvas.width, faceCanvas.height);
+
+    faceScanning = false;
+    document.getElementById('btn-face-start').classList.remove('d-none');
+    document.getElementById('btn-face-stop').classList.add('d-none');
+    document.getElementById('btn-face-switch').classList.add('d-none');
+    document.getElementById('face-status').textContent = 'Dihentikan';
+    document.getElementById('face-status').className = 'badge bg-secondary';
+    document.getElementById('face-guide').style.display = 'none';
+}
+
+// --- Switch Camera ---
+function updateFaceSwitchLabel() {
+    const btn = document.getElementById('btn-face-switch');
+    if (faceCurrentFacing === 'user') {
+        btn.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Kamera Belakang';
+    } else {
+        btn.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Kamera Depan';
+    }
+}
+
+function switchFaceCamera() {
+    if (!faceScanning) return;
+    faceCurrentFacing = (faceCurrentFacing === 'user') ? 'environment' : 'user';
+    stopFaceScan();
+    setTimeout(startFaceScan, 300);
+}
+
+// --- Detect & Recognize ---
+async function detectAndRecognize() {
+    if (!faceScanning || !modelsLoaded || !faceVideo || faceVideo.paused || faceVideo.ended) return;
+
+    try {
+        const ctx = faceCanvas.getContext('2d');
+        ctx.clearRect(0, 0, faceCanvas.width, faceCanvas.height);
+
+        const detections = await faceapi.detectSingleFace(faceVideo, new faceapi.TinyFaceDetectorOptions({inputSize: 320, scoreThreshold: 0.5}))
+            .withFaceLandmarks()
+            .withFaceDescriptor();
+
+        if (detections) {
+            // Draw bounding box
+            const box = detections.detection.box;
+            // Mirror the x coordinate for front camera
+            const mirroredX = faceCanvas.width - box.x - box.width;
+            ctx.strokeStyle = '#4A90D9';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(mirroredX, box.y, box.width, box.height);
+
+            // Label
+            ctx.fillStyle = '#4A90D9';
+            ctx.fillRect(mirroredX, box.y - 25, 100, 25);
+            ctx.fillStyle = '#fff';
+            ctx.font = '12px sans-serif';
+            ctx.fillText('Wajah Terdeteksi', mirroredX + 5, box.y - 8);
+
+            // Update status
+            document.getElementById('face-status').textContent = 'Mendeteksi Wajah...';
+            document.getElementById('face-status').className = 'badge bg-info';
+
+            // Check cooldown
+            const now = Date.now();
+            if (now - lastFaceScanTime < SCAN_COOLDOWN) return;
+
+            // Check if paused after success
+            if (faceScanPaused) return;
+
+            // Send embedding to server
+            const descriptor = Array.from(detections.descriptor);
+            lastFaceScanTime = now;
+
+            showFaceResult('processing', 'Memproses...', 'Mencocokkan wajah...');
+
+            fetch('/api/absen/face', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ embedding: descriptor })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showFaceResult('success', 'Absen Berhasil!', data.siswa_name || '');
+                    showFaceSuccessPopup(data.nama_lengkap || data.siswa_name, data.check_in_time || '');
+                    faceScanCount++;
+                    document.getElementById('face-count').textContent = faceScanCount;
+                    addFaceToHistory(data.siswa_name || 'Siswa', 'success');
+                    // Pause detection after success
+                    faceScanPaused = true;
+                    if (faceDetectionInterval) {
+                        clearInterval(faceDetectionInterval);
+                        faceDetectionInterval = null;
+                    }
+                    document.getElementById('face-status').textContent = '✅ Berhasil - Menunggu...';
+                    document.getElementById('face-status').className = 'badge bg-success';
+
+                    setTimeout(() => {
+                        faceScanPaused = false;
+                        if (faceScanning) {
+                            faceDetectionInterval = setInterval(detectAndRecognize, 500);
+                            document.getElementById('face-status').textContent = 'Aktif - Arahkan Wajah';
+                            document.getElementById('face-status').className = 'badge bg-success';
+                        }
+                    }, SCAN_PAUSE_MS);
+
+                    // TTS greeting
+                    const nama = data.siswa_name || data.nama_lengkap || '';
+                    const kelas = data.kelas_nama || '';
+                    const waktu = data.check_in_time || new Date().toLocaleTimeString('id-ID');
+
+                    fetch('/api/tts/greeting', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ nama_panggilan: nama, kelas_nama: kelas, waktu: waktu })
+                    })
+                    .then(r => r.blob())
+                    .then(blob => {
+                        const url = URL.createObjectURL(blob);
+                        new Audio(url).play().catch(() => {});
+                    })
+                    .catch(() => {});
+                } else {
+                    showFaceResult('error', data.message || 'Gagal mengenali wajah', 'Pastikan wajah terlihat jelas');
+                    addFaceToHistory(data.siswa_name || 'Tidak dikenali', 'error');
+                }
+            })
+            .catch(err => {
+                showFaceResult('error', 'Gagal menghubungi server', err.message);
+            });
+
+            // No need to revert - handled by pause logic above
+        } else {
+            // No face detected
+            document.getElementById('face-status').textContent = 'Mencari Wajah...';
+            document.getElementById('face-status').className = 'badge bg-warning';
+        }
+    } catch (err) {
+        console.error('Detection error:', err);
+    }
+}
+
+// --- Show Result ---
+function showFaceResult(type, message, detail) {
+    const el = document.getElementById('face-result');
+    let html = '';
+
+    if (type === 'success') {
+        html = `<div class="show">
+            <span class="fs-1">✅</span>
+            <h5 class="text-success mt-2">${message}</h5>
+            <p class="text-muted mb-0">${detail}</p>
+        </div>`;
+        el.className = 'face-scan-result show';
+        el.innerHTML = html;
+        el.parentElement.parentElement.style.borderColor = '#27AE60';
+        setTimeout(() => { el.parentElement.parentElement.style.borderColor = ''; }, 2000);
+    } else if (type === 'error') {
+        html = `<div class="show">
+            <span class="fs-1">❌</span>
+            <h5 class="text-danger mt-2">${message}</h5>
+            <p class="text-muted mb-0">${detail}</p>
+        </div>`;
+        el.className = 'face-scan-result show';
+        el.innerHTML = html;
+        el.parentElement.parentElement.style.borderColor = '#E74C3C';
+        setTimeout(() => { el.parentElement.parentElement.style.borderColor = ''; }, 2000);
+    } else {
+        html = `<div class="show">
+            <div class="spinner-border text-primary mb-2" role="status"></div>
+            <h5>${message}</h5>
+            <p class="text-muted mb-0">${detail}</p>
+        </div>`;
+        el.className = 'face-scan-result show';
+        el.innerHTML = html;
+    }
+}
+
+// --- History ---
+function addFaceToHistory(name, type) {
+    const el = document.getElementById('face-history');
+    const now = new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+    const icon = type === 'success' ? '✅' : '❌';
+
+    if (faceScanHistory.length === 0) {
+        el.innerHTML = '';
+    }
+
+    const item = document.createElement('div');
+    item.className = 'list-group-item d-flex justify-content-between align-items-center';
+    item.innerHTML = `<span>${icon} <strong>${name}</strong></span><small class="text-muted">${now}</small>`;
+    el.insertBefore(item, el.firstChild);
+
+    faceScanHistory.unshift({ name, type, time: now });
+    while (el.children.length > 10) {
+        el.removeChild(el.lastChild);
+    }
+}
+
+// --- Success Popup ---
+let facePopupTimer = null;
+
+function showFaceSuccessPopup(namaLengkap, jamAbsen) {
+    const modal = document.getElementById('faceSuccessModal');
+    document.getElementById('popup-face-nama').textContent = namaLengkap || 'Siswa';
+    document.getElementById('popup-face-jam').textContent = jamAbsen || new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+
+    const progressEl = document.getElementById('popup-face-progress');
+    progressEl.style.transition = 'none';
+    progressEl.style.width = '100%';
+
+    const bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
+
+    setTimeout(() => {
+        progressEl.style.transition = 'width 3s linear';
+        progressEl.style.width = '0%';
+    }, 100);
+
+    if (facePopupTimer) clearTimeout(facePopupTimer);
+    facePopupTimer = setTimeout(() => bsModal.hide(), 3000);
+}
+
+// --- Init ---
+document.addEventListener('DOMContentLoaded', loadFaceModels);
+</script>
+{% endblock %}
