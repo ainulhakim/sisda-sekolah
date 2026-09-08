@@ -58,13 +58,13 @@ def create_app():
         from app import models
         db.create_all()
 
-    return app
+    # Prevent browser caching of HTML pages
+    @app.after_request
+    def add_header(response):
+        if response.content_type and 'text/html' in response.content_type:
+            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
+        return response
 
-# Prevent browser caching of HTML pages
-@app.after_request
-def add_header(response):
-    if response.content_type and 'text/html' in response.content_type:
-        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-        response.headers['Pragma'] = 'no-cache'
-        response.headers['Expires'] = '0'
-    return response
+    return app
