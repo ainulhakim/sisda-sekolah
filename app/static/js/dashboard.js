@@ -71,6 +71,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (mainContent) {
         mainContent.addEventListener('click', function(e) {
             if (window.innerWidth <= 768) {
+                // Don't close if clicking the toggle button itself
+                if (e.target.closest('.sidebar-toggle')) return;
                 const sidebar = document.getElementById('sidebar');
                 if (sidebar && sidebar.classList.contains('show')) {
                     closeSidebar();
