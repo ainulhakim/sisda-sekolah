@@ -13,10 +13,21 @@ login_manager.login_message = 'Silakan login terlebih dahulu.'
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
-    
+
     db.init_app(app)
     login_manager.init_app(app)
     csrf.init_app(app)
+
+    # Register nl2br filter for Jinja2
+    @app.template_filter('nl2br')
+    def nl2br_filter(s):
+        from markupsafe import Markup
+        if s:
+            import markupsafe
+            # Mark as safe, then replace newlines with <br>
+            text = markupsafe.Markup(s)
+            return Markup(str(text).replace('\n', '<br>\n'))
+        return ''
     
     from app.routes import register_blueprints
     register_blueprints(app)
@@ -48,3 +59,12 @@ def create_app():
         db.create_all()
 
     return app
+
+# Prevent browser caching of HTML pages
+@app.after_request
+def add_header(response):
+    if response.content_type and 'text/html' in response.content_type:
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+    return response
