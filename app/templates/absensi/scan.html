@@ -1,113 +1,200 @@
 {% extends "base.html" %}
-{% block title %}Scan QR Absensi{% endblock %}
+{% block title %}Absensi Scan{% endblock %}
 {% block content %}
 <style>
-    #qr-reader {
+    /* ── Scanner Container ── */
+    #scanner-container {
+        position: relative;
         border: 3px solid var(--primary);
         border-radius: 16px;
         overflow: hidden;
-        max-width: 500px;
+        max-width: 540px;
         margin: 0 auto;
+        background: #000;
     }
-    #qr-reader video {
+    #scanner-container.active {
+        border-color: #27AE60;
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0%   { box-shadow: 0 0 0 0 rgba(74, 144, 217, 0.4); }
+        70%  { box-shadow: 0 0 0 15px rgba(74, 144, 217, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(74, 144, 217, 0); }
+    }
+    #scan-video {
+        width: 100%;
+        display: block;
         border-radius: 13px;
     }
-    .scan-result {
-        transition: all 0.3s ease;
-        min-height: 80px;
+    #scan-video.front-camera {
+        transform: scaleX(-1);
     }
-    .scan-result.show {
-        animation: fadeInUp 0.4s ease;
+    #overlay-canvas {
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        border-radius: 13px;
+        pointer-events: none;
     }
-    @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(15px); }
-        to { opacity: 1; transform: translateY(0); }
+    #qr-canvas {
+        display: none;          /* off-screen; we only read pixel data from it */
     }
-    .scanner-overlay {
-        position: relative;
-    }
-    .scanner-overlay::before {
-        content: '';
+    .scanner-guide {
         position: absolute;
         top: 50%; left: 50%;
         transform: translate(-50%, -50%);
-        width: 250px; height: 250px;
+        width: 220px; height: 220px;
         border: 2px dashed rgba(74, 144, 217, 0.5);
         border-radius: 16px;
         pointer-events: none;
         z-index: 10;
     }
-    .pulse-ring {
-        animation: pulse 2s infinite;
+    .model-loading-overlay {
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        z-index: 20;
     }
-    @keyframes pulse {
-        0% { box-shadow: 0 0 0 0 rgba(74, 144, 217, 0.4); }
-        70% { box-shadow: 0 0 0 15px rgba(74, 144, 217, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(74, 144, 217, 0); }
+
+    /* ── Status Badges ── */
+    .status-badge {
+        font-size: 0.82rem;
+        padding: 0.35em 0.75em;
     }
+
+    /* ── Stats ── */
     .scan-count-badge {
         font-size: 1.5rem;
         font-weight: 700;
     }
-    #qr-reader__scan_region {
-        border-radius: 13px !important;
+
+    /* ── Scan result card ── */
+    .scan-result {
+        transition: all 0.3s ease;
+        min-height: 80px;
     }
-    #qr-reader__dashboard {
-        display: none !important;
+    .scan-result.show { animation: fadeInUp 0.4s ease; }
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(15px); }
+        to   { opacity: 1; transform: translateY(0); }
     }
-    #qr-reader img {
-        display: none !important;
+
+    /* ── Mode indicator tabs ── */
+    .mode-tab {
+        cursor: pointer;
+        padding: 8px 20px;
+        border-radius: 25px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        border: 2px solid #dee2e6;
+        background: #fff;
+        color: #6c757d;
+        transition: all 0.2s;
+    }
+    .mode-tab:hover { border-color: var(--primary); color: var(--primary); }
+    .mode-tab.active {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: #fff;
+    }
+
+    /* ── History list ── */
+    .history-item {
+        padding: 10px 14px;
+        border-left: 3px solid transparent;
+    }
+    .history-item.success { border-left-color: #27AE60; }
+    .history-item.error   { border-left-color: #E74C3C; }
+
+    /* ── Success modal ── */
+    .success-modal-body {
+        background: linear-gradient(135deg, #27AE60, #2ECC71);
+        border-radius: 20px;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 991.98px) {
+        .scanner-guide { width: 180px; height: 180px; }
+    }
+    @media (max-width: 575.98px) {
+        .scanner-guide { width: 150px; height: 150px; }
     }
 </style>
 
 <div class="row g-4">
-    <!-- Left: Scanner -->
+    <!-- ═══════ LEFT: Scanner ═══════ -->
     <div class="col-lg-7">
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="fas fa-qrcode me-2"></i>QR Scanner</h5>
-                <span class="badge bg-primary" id="scanner-status">Menunggu Kamera...</span>
+                <h5 class="mb-0"><i class="fas fa-camera me-2"></i>Absensi Scanner</h5>
+                <span class="badge bg-secondary status-badge" id="status-badge">Menunggu…</span>
             </div>
             <div class="card-body text-center">
-                <div class="scanner-overlay mb-3">
-                    <div id="qr-reader" class="pulse-ring"></div>
+                <!-- Mode toggle -->
+                <div class="d-flex justify-content-center gap-2 mb-3" id="mode-toggle">
+                    <button class="mode-tab active" id="tab-qr" onclick="switchMode('qr')">
+                        <i class="fas fa-qrcode me-1"></i> QR Code
+                    </button>
+                    <button class="mode-tab" id="tab-face" onclick="switchMode('face')">
+                        <i class="fas fa-face-smile me-1"></i> Wajah
+                    </button>
                 </div>
+
+                <!-- Video area -->
+                <div id="scanner-container" class="mb-3">
+                    <video id="scan-video" autoplay muted playsinline></video>
+                    <canvas id="overlay-canvas"></canvas>
+                    <canvas id="qr-canvas"></canvas>
+                    <div class="scanner-guide" id="scanner-guide"></div>
+
+                    <!-- Loading overlay (shown while face models load) -->
+                    <div class="model-loading-overlay" id="model-loading">
+                        <div class="spinner-border text-primary mb-2" role="status"></div>
+                        <p class="text-white mb-0 small">Memuat AI Model…</p>
+                    </div>
+                </div>
+
+                <!-- Controls -->
                 <div id="scanner-controls">
                     <button class="btn btn-primary btn-lg" id="btn-start" onclick="startScanner()">
-                        <i class="fas fa-camera me-2"></i>Mulai Scanner
+                        <i class="fas fa-play me-2"></i>Mulai Scanner
                     </button>
                     <button class="btn btn-danger btn-lg d-none" id="btn-stop" onclick="stopScanner()">
-                        <i class="fas fa-stop me-2"></i>Stop Scanner
+                        <i class="fas fa-stop me-2"></i>Stop
+                    </button>
+                    <button class="btn btn-outline-secondary btn-lg d-none" id="btn-switch" onclick="switchCamera()">
+                        <i class="fas fa-sync-alt me-2"></i><span id="switch-label">Kamera Depan</span>
                     </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Right: Info & Results -->
+    <!-- ═══════ RIGHT: Info & History ═══════ -->
     <div class="col-lg-5">
         <!-- DateTime & Stats -->
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-body">
                 <div class="row text-center">
                     <div class="col-6">
-                        <small class="text-muted d-block">Tanggal Hari Ini</small>
-                        <strong id="current-date">{{ today.strftime('%d %B %Y') }}</strong>
+                        <small class="text-muted d-block">Tanggal</small>
+                        <strong>{{ today.strftime('%d %B %Y') }}</strong>
                     </div>
                     <div class="col-6">
-                        <small class="text-muted d-block">Waktu Sekarang</small>
-                        <strong id="current-time"></strong>
+                        <small class="text-muted d-block">Waktu</small>
+                        <strong id="current-time">--:--:--</strong>
                     </div>
                 </div>
-                <hr>
+                <hr class="my-2">
                 <div class="text-center">
-                    <small class="text-muted d-block mb-1">Total Scan Hari Ini</small>
+                    <small class="text-muted d-block mb-1">Total Absen Hari Ini</small>
                     <span class="scan-count-badge text-primary" id="scan-count">{{ scan_count }}</span>
                 </div>
             </div>
         </div>
 
-        <!-- Scan Result -->
+        <!-- Last scan result -->
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-white">
                 <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Hasil Scan Terakhir</h6>
@@ -115,21 +202,22 @@
             <div class="card-body">
                 <div class="scan-result text-center" id="scan-result">
                     <div class="text-muted py-3">
-                        <i class="fas fa-qrcode fa-3x mb-3 d-block opacity-25"></i>
-                        <p>Arahkan kamera ke QR Code siswa</p>
+                        <i class="fas fa-camera fa-3x mb-3 d-block opacity-25"></i>
+                        <p class="mb-0">Arahkan kamera ke QR Code / Wajah siswa</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Recent Scans -->
+        <!-- History -->
         <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white">
-                <h6 class="mb-0"><i class="fas fa-history me-2"></i>Scan Terakhir</h6>
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="fas fa-history me-2"></i>Riwayat Absen</h6>
+                <span class="badge bg-light text-dark" id="history-badge">0</span>
             </div>
-            <div class="card-body p-0">
+            <div class="card-body p-0" style="max-height: 320px; overflow-y: auto;">
                 <div id="scan-history" class="list-group list-group-flush">
-                    <div class="list-group-item text-center text-muted py-3">
+                    <div class="list-group-item text-center text-muted py-3" id="history-placeholder">
                         <small>Belum ada scan hari ini</small>
                     </div>
                 </div>
@@ -138,18 +226,15 @@
     </div>
 </div>
 
-<!-- TTS greeting replaces old beep; audio played via JS fetch -->
-
-<!-- Success Popup Modal -->
+<!-- ═══════ Success Popup Modal ═══════ -->
 <div class="modal fade" id="successModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
-            <div class="modal-body text-center py-5" style="background: linear-gradient(135deg, #27AE60, #2ECC71);">
-                <div class="mb-3">
-                    <span style="font-size: 5rem;">✅</span>
-                </div>
+            <div class="modal-body text-center py-5 success-modal-body">
+                <div class="mb-3"><span style="font-size: 5rem;">✅</span></div>
                 <h3 class="text-white fw-bold mb-2" id="popup-nama">Nama Siswa</h3>
-                <p class="text-white-50 mb-3" style="font-size: 1.1rem;">Berhasil Absen Hari Ini</p>
+                <p class="mb-1" style="color: rgba(255,255,255,0.7); font-size: 0.95rem;" id="popup-method"></p>
+                <p class="text-white-50 mb-3" style="font-size: 1.05rem;">Berhasil Absen Hari Ini</p>
                 <div class="bg-white bg-opacity-25 rounded-pill d-inline-block px-4 py-2">
                     <span class="text-white fw-bold" style="font-size: 1.3rem;">
                         🕐 <span id="popup-jam">00:00:00</span>
@@ -157,277 +242,510 @@
                 </div>
                 <div class="mt-4">
                     <div class="progress" style="height: 6px; background: rgba(255,255,255,0.3);">
-                        <div class="progress-bar bg-white" id="popup-progress" style="width: 100%; transition: width 3s linear;"></div>
+                        <div class="progress-bar bg-white" id="popup-progress"
+                             style="width: 100%; transition: width 3s linear;"></div>
                     </div>
-                    <small class="text-white-50 mt-2 d-block">Menutup otomatis...</small>
+                    <small class="d-block mt-2" style="color: rgba(255,255,255,0.6);">Menutup otomatis…</small>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
 {% endblock %}
 
 {% block scripts %}
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<!-- CDN: jsQR -->
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<!-- CDN: face-api.js -->
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 <script>
-let html5QrCode = null;
-let scanning = false;
-let scanCount = {{ scan_count }};
-let scanHistory = [];
+/* ═══════════════════════════════════════════════════════════
+   Unified Attendance Scanner – QR + Face on one camera
+   ═══════════════════════════════════════════════════════════ */
+(function () {
+    'use strict';
 
-// Clock
-function updateClock() {
-    const now = new Date();
-    document.getElementById('current-time').textContent = now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
-}
-setInterval(updateClock, 1000);
-updateClock();
+    // ── DOM refs ──
+    const video       = document.getElementById('scan-video');
+    const overlay     = document.getElementById('overlay-canvas');
+    const qrCanvas    = document.getElementById('qr-canvas');
+    const container   = document.getElementById('scanner-container');
+    const guide       = document.getElementById('scanner-guide');
+    const modelLoad   = document.getElementById('model-loading');
+    const statusBadge = document.getElementById('status-badge');
+    const resultEl    = document.getElementById('scan-result');
+    const historyEl   = document.getElementById('scan-history');
+    const historyBadge = document.getElementById('history-badge');
+    const countEl     = document.getElementById('scan-count');
+    const btnStart    = document.getElementById('btn-start');
+    const btnStop     = document.getElementById('btn-stop');
+    const btnSwitch   = document.getElementById('btn-switch');
+    const switchLabel = document.getElementById('switch-label');
 
-function startScanner() {
-    if (scanning) return;
-    
-    document.getElementById('btn-start').classList.add('d-none');
-    document.getElementById('btn-stop').classList.remove('d-none');
-    document.getElementById('scanner-status').textContent = 'Aktif - Arahkan ke QR';
-    document.getElementById('scanner-status').className = 'badge bg-success';
-    
-    html5QrCode = new Html5Qrcode("qr-reader");
-    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-    
-    html5QrCode.start(
-        { facingMode: "environment" },
-        config,
-        onScanSuccess,
-        onScanFailure
-    ).then(() => {
-        scanning = true;
-    }).catch(err => {
-        showResult('error', 'Gagal mengakses kamera', 'Pastikan izin kamera diberikan');
-        document.getElementById('btn-start').classList.remove('d-none');
-        document.getElementById('btn-stop').classList.add('d-none');
-        document.getElementById('scanner-status').textContent = 'Kamera Tidak Tersedia';
-        document.getElementById('scanner-status').className = 'badge bg-danger';
-    });
-}
+    // ── State ──
+    let stream         = null;
+    let isActive       = false;
+    let currentMode    = 'qr';          // 'qr' | 'face'
+    let facing         = 'environment'; // default: back camera
+    let modelsLoaded   = false;
+    let faceModelsLoading = false;
 
-function stopScanner() {
-    if (html5QrCode && scanning) {
-        html5QrCode.stop().then(() => {
-            scanning = false;
-            document.getElementById('btn-start').classList.remove('d-none');
-            document.getElementById('btn-stop').classList.add('d-none');
-            document.getElementById('scanner-status').textContent = 'Dihentikan';
-            document.getElementById('scanner-status').className = 'badge bg-secondary';
+    // Timers
+    let qrTimer        = null;
+    let faceTimer      = null;
+    let cooldownUntil  = 0;            // timestamp (ms)
+    let scanCount      = {{ scan_count }};
+    let historyItems   = [];
+    let popupTimer     = null;
+
+    // Constants
+    const COOLDOWN_MS      = 4000;     // 4 s between any scans
+    const PAUSE_MS         = 8000;     // 8 s pause after success
+    const QR_INTERVAL_MS   = 200;      // QR check every 200 ms
+    const FACE_INTERVAL_MS = 500;      // Face check every 500 ms
+
+    // ───────────────────────────────────────
+    //  CLOCK
+    // ───────────────────────────────────────
+    function updateClock() {
+        document.getElementById('current-time').textContent =
+            new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // ───────────────────────────────────────
+    //  MODE SWITCHING
+    // ───────────────────────────────────────
+    window.switchMode = function (mode) {
+        if (mode === currentMode) return;
+        currentMode = mode;
+        document.getElementById('tab-qr').classList.toggle('active', mode === 'qr');
+        document.getElementById('tab-face').classList.toggle('active', mode === 'face');
+
+        // Update guide shape: round for face, square for QR
+        guide.style.borderRadius = mode === 'face' ? '50%' : '16px';
+        guide.style.width  = mode === 'face' ? '200px' : '220px';
+        guide.style.height = mode === 'face' ? '250px' : '220px';
+
+        // When switching to face mode, prefer front camera
+        if (mode === 'face' && facing !== 'user' && isActive) {
+            switchCamera();
+        } else if (mode === 'qr' && facing !== 'environment' && isActive) {
+            switchCamera();
+        }
+    };
+
+    // ───────────────────────────────────────
+    //  CAMERA CONTROLS
+    // ───────────────────────────────────────
+    function updateSwitchLabel() {
+        switchLabel.textContent = facing === 'environment' ? 'Kamera Depan' : 'Kamera Belakang';
+    }
+
+    window.startScanner = async function () {
+        if (isActive) return;
+
+        // Load face models first (lazy, in background)
+        if (!modelsLoaded && !faceModelsLoading) loadFaceModels();
+
+        facing = currentMode === 'face' ? 'user' : 'environment';
+
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: facing, width: { ideal: 640 }, height: { ideal: 480 } },
+                audio: false
+            });
+            video.srcObject = stream;
+
+            await new Promise((resolve, reject) => {
+                video.onloadedmetadata = resolve;
+                video.onerror = reject;
+                setTimeout(reject, 8000);
+            });
+
+            // Sync overlay canvas dimensions
+            overlay.width  = video.videoWidth;
+            overlay.height = video.videoHeight;
+            qrCanvas.width  = video.videoWidth;
+            qrCanvas.height = video.videoHeight;
+
+            isActive = true;
+            container.classList.add('active');
+            guide.style.display = 'block';
+
+            btnStart.classList.add('d-none');
+            btnStop.classList.remove('d-none');
+            btnSwitch.classList.remove('d-none');
+            updateSwitchLabel();
+
+            setStatus('active');
+            startLoops();
+        } catch (err) {
+            console.error('Camera start failed:', err);
+            setStatus('error', 'Kamera Tidak Tersedia');
+            showResult('error', 'Gagal mengakses kamera', err.message || 'Izin kamera ditolak');
+        }
+    };
+
+    window.stopScanner = function () {
+        if (!isActive) return;
+
+        stopLoops();
+
+        if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+        video.srcObject = null;
+
+        // Clear overlay
+        const ctx = overlay.getContext('2d');
+        ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+        isActive = false;
+        container.classList.remove('active');
+        guide.style.display = 'none';
+
+        btnStart.classList.remove('d-none');
+        btnStop.classList.add('d-none');
+        btnSwitch.classList.add('d-none');
+
+        setStatus('stopped', 'Dihentikan');
+    };
+
+    window.switchCamera = async function () {
+        if (!isActive) return;
+        facing = (facing === 'environment') ? 'user' : 'environment';
+
+        // Mirror video for front camera
+        video.classList.toggle('front-camera', facing === 'user');
+
+        if (stream) stream.getTracks().forEach(t => t.stop());
+
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: facing, width: { ideal: 640 }, height: { ideal: 480 } },
+                audio: false
+            });
+            video.srcObject = stream;
+            await new Promise(r => { video.onloadedmetadata = r; });
+
+            overlay.width  = video.videoWidth;
+            overlay.height = video.videoHeight;
+            qrCanvas.width  = video.videoWidth;
+            qrCanvas.height = video.videoHeight;
+
+            updateSwitchLabel();
+            startLoops();
+        } catch (err) {
+            console.error('Camera switch failed:', err);
+            setStatus('error', 'Gagal Ganti Kamera');
+        }
+    };
+
+    // ───────────────────────────────────────
+    //  DETECTION LOOPS
+    // ───────────────────────────────────────
+    function startLoops() {
+        stopLoops();
+        if (currentMode === 'qr') {
+            qrTimer = setInterval(scanQR, QR_INTERVAL_MS);
+        } else {
+            if (modelsLoaded) {
+                faceTimer = setInterval(detectFace, FACE_INTERVAL_MS);
+            } else {
+                setStatus('loading', 'Memuat Model…');
+            }
+        }
+    }
+
+    function stopLoops() {
+        if (qrTimer)   { clearInterval(qrTimer);   qrTimer = null; }
+        if (faceTimer) { clearInterval(faceTimer);  faceTimer = null; }
+    }
+
+    // ───────────────────────────────────────
+    //  QR DETECTION  (jsQR)
+    // ───────────────────────────────────────
+    function scanQR() {
+        if (!isActive || currentMode !== 'qr') return;
+        if (Date.now() < cooldownUntil) return;
+
+        const ctx = qrCanvas.getContext('2d', { willReadFrequently: true });
+        ctx.drawImage(video, 0, 0, qrCanvas.width, qrCanvas.height);
+        const imageData = ctx.getImageData(0, 0, qrCanvas.width, qrCanvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
+
+        if (!code) return;
+
+        // Draw highlight on overlay
+        drawQRHighlight(code.location);
+
+        handleSuccess('qr', { qr_data: code.data });
+    }
+
+    function drawQRHighlight(loc) {
+        const ctx = overlay.getContext('2d');
+        ctx.clearRect(0, 0, overlay.width, overlay.height);
+        ctx.strokeStyle = '#4A90D9';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(loc.topLeftCorner.x, loc.topLeftCorner.y);
+        ctx.lineTo(loc.topRightCorner.x, loc.topRightCorner.y);
+        ctx.lineTo(loc.bottomRightCorner.x, loc.bottomRightCorner.y);
+        ctx.lineTo(loc.bottomLeftCorner.x, loc.bottomLeftCorner.y);
+        ctx.closePath();
+        ctx.stroke();
+        setTimeout(() => {
+            const c = overlay.getContext('2d');
+            c.clearRect(0, 0, overlay.width, overlay.height);
+        }, 800);
+    }
+
+    // ───────────────────────────────────────
+    //  FACE DETECTION  (face-api.js)
+    // ───────────────────────────────────────
+    async function detectFace() {
+        if (!isActive || currentMode !== 'face' || !modelsLoaded) return;
+        if (Date.now() < cooldownUntil) return;
+
+        const ctx = overlay.getContext('2d');
+        ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+        try {
+            const detection = await faceapi
+                .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({
+                    inputSize: 320,
+                    scoreThreshold: 0.5
+                }))
+                .withFaceLandmarks()
+                .withFaceDescriptor();
+
+            if (!detection) {
+                setStatus('searching', 'Mencari Wajah…');
+                return;
+            }
+
+            // Draw bounding box
+            const box = detection.detection.box;
+            const mx = overlay.width - box.x - box.width; // mirror for front cam
+            ctx.strokeStyle = '#4A90D9';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(mx, box.y, box.width, box.height);
+
+            ctx.fillStyle = '#4A90D9';
+            ctx.fillRect(mx, box.y - 26, 120, 26);
+            ctx.fillStyle = '#fff';
+            ctx.font = '12px sans-serif';
+            ctx.fillText('Wajah Terdeteksi', mx + 6, box.y - 8);
+
+            setStatus('detected', 'Wajah Terdeteksi!');
+
+            const descriptor = Array.from(detection.descriptor);
+            handleSuccess('face', { embedding: descriptor });
+        } catch (err) {
+            console.error('Face detection error:', err);
+        }
+    }
+
+    // ───────────────────────────────────────
+    //  SHARED SUCCESS HANDLER
+    // ───────────────────────────────────────
+    function handleSuccess(mode, payload) {
+        if (Date.now() < cooldownUntil) return;
+        cooldownUntil = Date.now() + COOLDOWN_MS;
+
+        showResult('processing', 'Memproses…', mode === 'qr' ? 'Membaca QR Code…' : 'Mengenali Wajah…');
+
+        const url     = mode === 'qr' ? '/api/absen/qr' : '/api/absen/face';
+        const label   = mode === 'qr' ? 'QR Code' : 'Face Recognition';
+
+        fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                const nama  = data.siswa_name || data.nama_lengkap || 'Siswa';
+                const full  = data.nama_lengkap || data.siswa_name || 'Siswa';
+                const jam   = data.check_in_time || new Date().toLocaleTimeString('id-ID');
+                const kelas = data.kelas_nama || '';
+
+                showResult('success', 'Absen Berhasil!', nama);
+                showSuccessPopup(full, jam, label);
+                scanCount++;
+                countEl.textContent = scanCount;
+                addToHistory(nama, 'success', label);
+
+                // TTS greeting
+                fetch('/api/tts/greeting', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nama_panggilan: nama, kelas_nama: kelas, waktu: jam })
+                })
+                .then(r => r.blob())
+                .then(blob => { new Audio(URL.createObjectURL(blob)).play().catch(() => {}); })
+                .catch(() => {});
+
+                // Pause detection
+                pauseDetection(PAUSE_MS);
+            } else {
+                showResult('error', data.message || 'Gagal memproses', mode === 'qr' ? 'Pastikan QR Code valid' : 'Pastikan wajah terlihat jelas');
+                addToHistory(data.siswa_name || 'Gagal', 'error', label);
+            }
+        })
+        .catch(err => {
+            showResult('error', 'Gagal menghubungi server', err.message || '');
+            addToHistory('Error', 'error', label);
         });
     }
-}
 
-let lastScanTime = 0;
-const SCAN_COOLDOWN = 3000;
+    function pauseDetection(ms) {
+        stopLoops();
+        setStatus('success', '✅ Berhasil – Menunggu…');
+        setTimeout(() => {
+            if (isActive) {
+                cooldownUntil = Date.now() + COOLDOWN_MS;
+                startLoops();
+                setStatus('active');
+            }
+        }, ms);
+    }
 
-function onScanSuccess(decodedText, decodedResult) {
-    const now = Date.now();
-    if (now - lastScanTime < SCAN_COOLDOWN) return;
-    lastScanTime = now;
-    
-    // Show processing state
-    showResult('processing', 'Memproses...', decodedText);
-    
-    // Start TTS fetch in parallel (pre-fetch for speed)
-    let ttsPromise = null;
-    
-    // Call QR API
-    fetch('/api/absen/qr', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ qr_data: decodedText })
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-            // Show success in scan result
-            showResult('success', 'Absen Berhasil!', data.siswa_name || '');
-            
-            // Show popup modal
-            showSuccessPopup(data.nama_lengkap || data.siswa_name, data.check_in_time || '');
-            scanCount++;
-            document.getElementById('scan-count').textContent = scanCount;
-            addToHistory(data.siswa_name || decodedText, 'success');
-
-            // Play TTS voice greeting (already fetching in parallel)
-            const nama = data.siswa_name || data.nama_lengkap || '';
-            const kelas = data.kelas_nama || '';
-            const waktu = data.check_in_time || new Date().toLocaleTimeString('id-ID');
-            
-            fetch('/api/tts/greeting', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nama_panggilan: nama, kelas_nama: kelas, waktu: waktu })
-            })
-            .then(r => r.blob())
-            .then(blob => {
-                const url = URL.createObjectURL(blob);
-                const audio = new Audio(url);
-                audio.play().catch(() => {});
-            })
-            .catch(() => {});
+    // ───────────────────────────────────────
+    //  RESULT DISPLAY
+    // ───────────────────────────────────────
+    function showResult(type, message, detail) {
+        let html = '';
+        if (type === 'success') {
+            html = `<div class="show"><span class="fs-1">✅</span><h5 class="text-success mt-2">${message}</h5><p class="text-muted mb-0">${detail}</p></div>`;
+            flashBorder('#27AE60');
+        } else if (type === 'error') {
+            html = `<div class="show"><span class="fs-1">❌</span><h5 class="text-danger mt-2">${message}</h5><p class="text-muted mb-0">${detail}</p></div>`;
+            flashBorder('#E74C3C');
         } else {
-            showResult('error', data.message || 'Gagal memproses QR', decodedText);
-            addToHistory(data.siswa_name || decodedText, 'error');
+            html = `<div class="show"><div class="spinner-border text-primary mb-2" role="status"></div><h5>${message}</h5><p class="text-muted mb-0">${detail}</p></div>`;
         }
-    })
-    .catch(err => {
-        showResult('error', 'Gagal menghubungi server', err.message);
-        addToHistory(decodedText, 'error');
-    });
-}
-
-function onScanFailure(error) {
-    // Silently ignore - normal during scanning
-}
-
-function showResult(type, message, detail) {
-    const el = document.getElementById('scan-result');
-    let html = '';
-    
-    if (type === 'success') {
-        html = `
-            <div class="show">
-                <span class="fs-1">✅</span>
-                <h5 class="text-success mt-2">${message}</h5>
-                <p class="text-muted mb-0">${detail}</p>
-            </div>`;
-        el.className = 'scan-result show';
-        el.innerHTML = html;
-        // Flash green
-        el.parentElement.parentElement.style.borderColor = '#27AE60';
-        setTimeout(() => { el.parentElement.parentElement.style.borderColor = ''; }, 2000);
-    } else if (type === 'error') {
-        html = `
-            <div class="show">
-                <span class="fs-1">❌</span>
-                <h5 class="text-danger mt-2">${message}</h5>
-                <p class="text-muted mb-0">${detail}</p>
-            </div>`;
-        el.className = 'scan-result show';
-        el.innerHTML = html;
-        // Flash red
-        el.parentElement.parentElement.style.borderColor = '#E74C3C';
-        setTimeout(() => { el.parentElement.parentElement.style.borderColor = ''; }, 2000);
-    } else {
-        html = `
-            <div class="show">
-                <div class="spinner-border text-primary mb-2" role="status"></div>
-                <h5>${message}</h5>
-                <p class="text-muted mb-0">${detail}</p>
-            </div>`;
-        el.className = 'scan-result show';
-        el.innerHTML = html;
+        resultEl.className = 'scan-result show';
+        resultEl.innerHTML = html;
     }
-}
 
-function addToHistory(name, type) {
-    const el = document.getElementById('scan-history');
-    const now = new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
-    const icon = type === 'success' ? '✅' : '❌';
-    const badgeClass = type === 'success' ? 'bg-success' : 'bg-danger';
-    
-    // Remove placeholder if exists
-    if (scanHistory.length === 0) {
-        el.innerHTML = '';
+    function flashBorder(color) {
+        const card = resultEl.closest('.card');
+        if (!card) return;
+        card.style.borderColor = color;
+        setTimeout(() => { card.style.borderColor = ''; }, 2000);
     }
-    
-    const item = document.createElement('div');
-    item.className = 'list-group-item d-flex justify-content-between align-items-center';
-    item.innerHTML = `
-        <span>${icon} <strong>${name}</strong></span>
-        <small class="text-muted">${now}</small>
-    `;
-    el.insertBefore(item, el.firstChild);
-    
-    scanHistory.unshift({ name, type, time: now });
-    
-    // Keep max 10
-    while (el.children.length > 10) {
-        el.removeChild(el.lastChild);
+
+    // ───────────────────────────────────────
+    //  STATUS BADGE
+    // ───────────────────────────────────────
+    function setStatus(state, text) {
+        const map = {
+            active:     ['bg-success',  'Aktif – Scan…'],
+            detected:   ['bg-info',     'Wajah Terdeteksi!'],
+            searching:  ['bg-warning',  'Mencari Wajah…'],
+            processing: ['bg-primary',  'Memproses…'],
+            success:    ['bg-success',  '✅ Berhasil – Menunggu…'],
+            error:      ['bg-danger',   text || 'Error'],
+            loading:    ['bg-info',     'Memuat Model…'],
+            stopped:    ['bg-secondary', text || 'Dihentikan'],
+            ready:      ['bg-success',  'Siap'],
+        };
+        const [cls, label] = map[state] || ['bg-secondary', text || '…'];
+        statusBadge.className = 'badge status-badge ' + cls;
+        statusBadge.textContent = text || label;
     }
-}
 
-// Success Popup Modal
-let popupTimer = null;
-let popupProgressTimer = null;
+    // ───────────────────────────────────────
+    //  SUCCESS POPUP MODAL
+    // ───────────────────────────────────────
+    function showSuccessPopup(namaLengkap, jam, method) {
+        document.getElementById('popup-nama').textContent   = namaLengkap || 'Siswa';
+        document.getElementById('popup-jam').textContent    = jam || new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        document.getElementById('popup-method').textContent = method ? ('via ' + method) : '';
 
-function showSuccessPopup(namaLengkap, jamAbsen) {
-    const modal = document.getElementById('successModal');
-    const namaEl = document.getElementById('popup-nama');
-    const jamEl = document.getElementById('popup-jam');
-    const progressEl = document.getElementById('popup-progress');
-    
-    // Set data
-    namaEl.textContent = namaLengkap || 'Siswa';
-    jamEl.textContent = jamAbsen || new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
-    
-    // Reset progress bar
-    progressEl.style.transition = 'none';
-    progressEl.style.width = '100%';
-    
-    // Show modal
-    const bsModal = new bootstrap.Modal(modal);
-    bsModal.show();
-    
-    // Animate progress bar
-    setTimeout(() => {
-        progressEl.style.transition = 'width 3s linear';
-        progressEl.style.width = '0%';
-    }, 100);
-    
-    // Auto-close after 3 seconds
-    if (popupTimer) clearTimeout(popupTimer);
-    popupTimer = setTimeout(() => {
-        bsModal.hide();
-    }, 3000);
-}
+        const progress = document.getElementById('popup-progress');
+        progress.style.transition = 'none';
+        progress.style.width = '100%';
 
-// Mood Edit Functions
-function editMood(absensiId, currentMood) {
-    const moods = [
-        {value: 'senang', emoji: '😊', label: 'Senang'},
-        {value: 'sedih', emoji: '😢', label: 'Sedih'},
-        {value: 'netral', emoji: '😐', label: 'Netral'},
-        {value: 'mengantuk', emoji: '😴', label: 'Mengantuk'},
-        {value: 'sakit', emoji: '🤒', label: 'Sakit'},
-    ];
-    
-    let html = '<div class="d-flex gap-2 flex-wrap justify-content-center">';
-    moods.forEach(m => {
-        const active = m.value === currentMood ? 'btn-primary' : 'btn-outline-secondary';
-        html += `<button class="btn ${active} btn-lg" onclick="saveMood(${absensiId}, '${m.value}')" style="font-size: 1.5rem; width: 70px;">${m.emoji}</button>`;
-    });
-    html += '</div>';
-    
-    document.getElementById('mood-buttons-' + absensiId).innerHTML = html;
-}
+        const bsModal = new bootstrap.Modal(document.getElementById('successModal'));
+        bsModal.show();
 
-function saveMood(absensiId, mood) {
-    fetch(`/api/absensi/${absensiId}/mood`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({mood: mood})
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-            // Update display
-            const moodEmojis = {'senang': '😊', 'sedih': '😢', 'netral': '😐', 'mengantuk': '😴', 'sakit': '🤒'};
-            document.getElementById('mood-display-' + absensiId).innerHTML = 
-                `<span class="badge bg-light text-dark" style="font-size: 1.2rem;">${moodEmojis[mood] || ''} ${mood}</span>`;
-            document.getElementById('mood-buttons-' + absensiId).innerHTML = 
-                `<button class="btn btn-sm btn-outline-primary" onclick="editMood(${absensiId}, '${mood}')">Edit</button>`;
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                progress.style.transition = 'width 3s linear';
+                progress.style.width = '0%';
+            });
+        });
+
+        if (popupTimer) clearTimeout(popupTimer);
+        popupTimer = setTimeout(() => bsModal.hide(), 3000);
+    }
+
+    // ───────────────────────────────────────
+    //  HISTORY
+    // ───────────────────────────────────────
+    function addToHistory(name, type, method) {
+        document.getElementById('history-placeholder')?.remove();
+        const now  = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        const icon = type === 'success' ? '✅' : '❌';
+        const methodIcon = method === 'QR Code' ? '📷' : '👤';
+
+        const item = document.createElement('div');
+        item.className = `list-group-item history-item ${type} d-flex justify-content-between align-items-center`;
+        item.innerHTML = `<span>${icon} <strong>${name}</strong> <small class="text-muted ms-1">${methodIcon}</small></span><small class="text-muted">${now}</small>`;
+        historyEl.insertBefore(item, historyEl.firstChild);
+
+        historyItems.unshift({ name, type, time: now });
+        historyBadge.textContent = historyItems.filter(h => h.type === 'success').length;
+
+        while (historyEl.children.length > 15) historyEl.removeChild(historyEl.lastChild);
+    }
+
+    // ───────────────────────────────────────
+    //  LOAD FACE-API MODELS
+    // ───────────────────────────────────────
+    async function loadFaceModels() {
+        faceModelsLoading = true;
+        try {
+            // Try WebGL first, then CPU
+            const backends = ['webgl', 'cpu'];
+            for (const b of backends) {
+                try { await faceapi.tf.setBackend(b); await faceapi.tf.ready(); break; }
+                catch (e) { console.warn('Backend', b, 'failed:', e.message); }
+            }
+
+            await faceapi.nets.tinyFaceDetector.loadFromUri('/static/models/face-api/');
+            await faceapi.nets.faceLandmark68Net.loadFromUri('/static/models/face-api/');
+            await faceapi.nets.faceRecognitionNet.loadFromUri('/static/models/face-api/');
+
+            modelsLoaded = true;
+            modelLoad.classList.add('d-none');
+            console.log('Face API models loaded');
+
+            if (isActive && currentMode === 'face' && !faceTimer) {
+                faceTimer = setInterval(detectFace, FACE_INTERVAL_MS);
+                setStatus('active');
+            } else if (!isActive) {
+                setStatus('ready', 'Siap');
+            }
+        } catch (err) {
+            console.error('Face model load failed:', err);
+            modelLoad.innerHTML = '<div class="text-danger"><i class="fas fa-exclamation-triangle fa-2x mb-2"></i><p class="text-white small mb-0">Gagal memuat model AI</p></div>';
+            setStatus('error', 'Model Gagal');
+        } finally {
+            faceModelsLoading = false;
         }
+    }
+
+    // ── Init ──
+    document.addEventListener('DOMContentLoaded', function () {
+        setStatus('stopped', 'Tekan Mulai');
+        // Pre-load face models eagerly
+        loadFaceModels();
     });
-}
+
+})();
 </script>
 {% endblock %}

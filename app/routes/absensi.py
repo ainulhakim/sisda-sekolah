@@ -232,7 +232,7 @@ def absensi_scan():
     today_date = date.today()
     scan_count = Absensi.query.filter(
         Absensi.tanggal == today_date,
-        Absensi.check_in_method.in_(['qr', 'qrcode'])
+        Absensi.check_in_method.in_(['qr', 'qrcode', 'face'])
     ).count()
     return render_template('absensi/scan.html', today=today_date, scan_count=scan_count)
 
