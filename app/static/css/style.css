@@ -27,9 +27,27 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; }
 }
 .sidebar-nav hr { border-color: rgba(255,255,255,0.1); margin: 5px 20px; }
 
+/* Sidebar Backdrop (mobile overlay) */
+.sidebar-backdrop {
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5); z-index: 999; transition: opacity 0.3s;
+}
+.sidebar-backdrop.show { display: block; }
+
 /* Main Content */
-.main-content { margin-left: var(--sidebar-width); min-height: 100vh; }
+.main-content {
+    margin-left: var(--sidebar-width); min-height: 100vh;
+    transition: margin-left 0.3s ease;
+}
 .content-wrapper { max-width: 1400px; }
+
+/* Navbar toggle button - always visible */
+.sidebar-toggle {
+    background: none; border: none; cursor: pointer; padding: 6px 10px;
+    border-radius: 8px; transition: background 0.2s;
+}
+.sidebar-toggle:hover { background: rgba(0,0,0,0.05); }
+[data-bs-theme="dark"] .sidebar-toggle:hover { background: rgba(255,255,255,0.1); }
 
 /* Cards */
 .stat-card { border-radius: 12px; border: none; }
@@ -75,10 +93,54 @@ body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; }
 [data-bs-theme="dark"] .table-light, [data-bs-theme="dark"] .bg-white, [data-bs-theme="dark"] .card-header { background: #2a2a3e !important; color: #ddd; }
 [data-bs-theme="dark"] .form-control, [data-bs-theme="dark"] .form-select { background: #2a2a3e; border-color: #3a3a4e; color: #ddd; }
 [data-bs-theme="dark"] .alert-secondary { background: #2a2a3e; color: #ddd; }
+[data-bs-theme="dark"] .sidebar-toggle:hover { background: rgba(255,255,255,0.1); }
 
-/* Mobile */
+/* ===== DESKTOP: Sidebar collapsible ===== */
+@media (min-width: 769px) {
+    /* When sidebar is collapsed */
+    body.sidebar-collapsed .sidebar {
+        transform: translateX(-100%);
+    }
+    body.sidebar-collapsed .main-content {
+        margin-left: 0;
+    }
+    /* When sidebar is open (default) */
+    body:not(.sidebar-collapsed) .sidebar {
+        transform: translateX(0);
+    }
+}
+
+/* ===== MOBILE: Sidebar as drawer ===== */
 @media (max-width: 768px) {
-    .sidebar { transform: translateX(-100%); }
-    .sidebar.show { transform: translateX(0); }
-    .main-content { margin-left: 0; }
+    .sidebar {
+        transform: translateX(-100%);
+        width: 280px;
+        box-shadow: none;
+    }
+    .sidebar.show {
+        transform: translateX(0);
+        box-shadow: 4px 0 20px rgba(0,0,0,0.3);
+    }
+    .main-content {
+        margin-left: 0;
+    }
+    /* Bigger touch targets on mobile */
+    .sidebar-nav li a {
+        padding: 14px 20px;
+        font-size: 15px;
+    }
+    .sidebar-header {
+        padding: 16px 20px;
+    }
+    /* Close button in sidebar header */
+    .sidebar-close {
+        display: inline-flex !important;
+    }
+}
+
+/* ===== TABLET: sidebar overlay ===== */
+@media (max-width: 1024px) and (min-width: 769px) {
+    .sidebar {
+        box-shadow: 4px 0 20px rgba(0,0,0,0.2);
+    }
 }
